@@ -1,0 +1,29 @@
+#ifndef MSTEP_H
+#define MSTEP_H
+
+#include <Rcpp.h>
+
+// M-step
+void cumTau(
+   double *numer, double *denom, double *joint, int nobs, int nk, int nl);
+void cumRho(
+   const double *numer, double *denom,
+   int *y, int nobs, int nvar, Rcpp::IntegerVector ncat,
+   int nk, double *post, const double *old_rho
+);
+void updatePi(double *pi, double *post, int nobs, int nclass);
+void updateTau(double *tau, double *numer, double *denom, int nk, int nl, int* restr);
+void updateRho(
+   double *rho, double *numer, double *denom,
+   int nobs, int nclass, int nvar, Rcpp::IntegerVector ncat,
+   int* restr
+);
+void updateA(double *pi, double *post, int nobs, int nclass);
+void updateB(double *tau, double *ntau, int nk, int nl, int* restr);
+void updateC(
+      double *rho, double *numer, double *denom,
+      int nobs, int nclass, int nvar, Rcpp::IntegerVector ncat,
+      int* restr
+);
+
+#endif
