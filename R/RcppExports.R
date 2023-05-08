@@ -5,12 +5,24 @@ log_add_exp <- function(x, y) {
     .Call(`_slcm_log_add_exp`, x, y)
 }
 
+log_sum_exp <- function(x) {
+    .Call(`_slcm_log_sum_exp`, x)
+}
+
 calcModel <- function(param, y, nobs, nvar, ncat, nlv, nroot, nlink, nleaf, nlink_unique, nleaf_unique, root, tree_index, ulv, vlv, leaf, cstr_link, cstr_leaf, nclass, nclass_leaf, nclass_u, nclass_v, ref, reg = FALSE) {
     .Call(`_slcm_calcModel`, param, y, nobs, nvar, ncat, nlv, nroot, nlink, nleaf, nlink_unique, nleaf_unique, root, tree_index, ulv, vlv, leaf, cstr_link, cstr_leaf, nclass, nclass_leaf, nclass_u, nclass_v, ref, reg)
 }
 
+emFit2 <- function(y, num, idx, nclass, dim, par, reg, restr0, control) {
+    .Call(`_slcm_emFit2`, y, num, idx, nclass, dim, par, reg, restr0, control)
+}
+
 emFit <- function(y, nobs, nvar, ncat, nlv, nroot, nlink, nleaf, nlink_unique, nleaf_unique, tree_index, root, ulv, vlv, leaf, cstr_link, cstr_leaf, nclass, nclass_leaf, nclass_u, nclass_v, init_param, restr0, max_iter, tol, verbose, newiter = 100L, reg = FALSE) {
     .Call(`_slcm_emFit`, y, nobs, nvar, ncat, nlv, nroot, nlink, nleaf, nlink_unique, nleaf_unique, tree_index, root, ulv, vlv, leaf, cstr_link, cstr_leaf, nclass, nclass_leaf, nclass_u, nclass_v, init_param, restr0, max_iter, tol, verbose, newiter, reg)
+}
+
+fll <- function(logit, y, nobs, nvar, ncat, nlv, nr, nrl, nlf, ntau, nrho, nprob, rl, ul, vl, lf, eqrl, eqlf, nc, nk, nl, ncl, nc_pi, nk_tau, nl_tau, nc_rho, restr0, ref, reg = FALSE) {
+    .Call(`_slcm_fll`, logit, y, nobs, nvar, ncat, nlv, nr, nrl, nlf, ntau, nrho, nprob, rl, ul, vl, lf, eqrl, eqlf, nc, nk, nl, ncl, nc_pi, nk_tau, nl_tau, nc_rho, restr0, ref, reg)
 }
 
 floglik <- function(logit, y, nobs, nvar, ncat, nlv, nroot, nlink, nlink_unique, nleaf, nleaf_unique, root, ulv, vlv, cstr_link, leaf, cstr_leaf, nclass, nclass_leaf, nclass_u, nclass_v, restr0, ref, reg = FALSE) {

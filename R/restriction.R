@@ -1,14 +1,14 @@
 proc_restr <- function(restriction, param, args) {
    restr <- list()
-   numbered_param <- number_par(param, restriction)
-   numbered <- numbered_param$numbers
-   param0 <- numbered_param$param0
+   num_param <- number_par(param, restriction)
+   numbers <- num_param$numbers
+   param0  <- num_param$param0
 
    tau_ind <- as.numeric(gsub("tau", "", restriction[grep("tau", restriction)]))
    rho_ind <- as.numeric(gsub("rho", "", restriction[grep("rho", restriction)]))
 
-   restr_tau <- lapply(numbered$tau, apply, 1:2, "%in%", tau_ind)
-   restr_rho <- lapply(numbered$rho, apply, 1:2, "%in%", rho_ind)
+   restr_tau <- lapply(numbers$tau, apply, 1:2, "%in%", tau_ind)
+   restr_rho <- lapply(numbers$rho, apply, 1:2, "%in%", rho_ind)
    restr0 <- list(restr_tau, restr_rho)
    ref <- list(
       args$nclass_root,

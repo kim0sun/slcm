@@ -22,6 +22,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// log_sum_exp
+double log_sum_exp(NumericVector x);
+RcppExport SEXP _slcm_log_sum_exp(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(log_sum_exp(x));
+    return rcpp_result_gen;
+END_RCPP
+}
 // calcModel
 List calcModel(List param, IntegerVector y, int nobs, IntegerVector nvar, List ncat, int nlv, int nroot, int nlink, int nleaf, int nlink_unique, int nleaf_unique, IntegerVector root, IntegerVector tree_index, IntegerVector ulv, IntegerVector vlv, IntegerVector leaf, IntegerVector cstr_link, IntegerVector cstr_leaf, IntegerVector nclass, IntegerVector nclass_leaf, IntegerVector nclass_u, IntegerVector nclass_v, List ref, bool reg);
 RcppExport SEXP _slcm_calcModel(SEXP paramSEXP, SEXP ySEXP, SEXP nobsSEXP, SEXP nvarSEXP, SEXP ncatSEXP, SEXP nlvSEXP, SEXP nrootSEXP, SEXP nlinkSEXP, SEXP nleafSEXP, SEXP nlink_uniqueSEXP, SEXP nleaf_uniqueSEXP, SEXP rootSEXP, SEXP tree_indexSEXP, SEXP ulvSEXP, SEXP vlvSEXP, SEXP leafSEXP, SEXP cstr_linkSEXP, SEXP cstr_leafSEXP, SEXP nclassSEXP, SEXP nclass_leafSEXP, SEXP nclass_uSEXP, SEXP nclass_vSEXP, SEXP refSEXP, SEXP regSEXP) {
@@ -53,6 +64,25 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< List >::type ref(refSEXP);
     Rcpp::traits::input_parameter< bool >::type reg(regSEXP);
     rcpp_result_gen = Rcpp::wrap(calcModel(param, y, nobs, nvar, ncat, nlv, nroot, nlink, nleaf, nlink_unique, nleaf_unique, root, tree_index, ulv, vlv, leaf, cstr_link, cstr_leaf, nclass, nclass_leaf, nclass_u, nclass_v, ref, reg));
+    return rcpp_result_gen;
+END_RCPP
+}
+// emFit2
+List emFit2(IntegerVector y, List num, List idx, List nclass, List dim, NumericVector par, LogicalVector reg, LogicalVector restr0, List control);
+RcppExport SEXP _slcm_emFit2(SEXP ySEXP, SEXP numSEXP, SEXP idxSEXP, SEXP nclassSEXP, SEXP dimSEXP, SEXP parSEXP, SEXP regSEXP, SEXP restr0SEXP, SEXP controlSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerVector >::type y(ySEXP);
+    Rcpp::traits::input_parameter< List >::type num(numSEXP);
+    Rcpp::traits::input_parameter< List >::type idx(idxSEXP);
+    Rcpp::traits::input_parameter< List >::type nclass(nclassSEXP);
+    Rcpp::traits::input_parameter< List >::type dim(dimSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type par(parSEXP);
+    Rcpp::traits::input_parameter< LogicalVector >::type reg(regSEXP);
+    Rcpp::traits::input_parameter< LogicalVector >::type restr0(restr0SEXP);
+    Rcpp::traits::input_parameter< List >::type control(controlSEXP);
+    rcpp_result_gen = Rcpp::wrap(emFit2(y, num, idx, nclass, dim, par, reg, restr0, control));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -91,6 +121,45 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type newiter(newiterSEXP);
     Rcpp::traits::input_parameter< bool >::type reg(regSEXP);
     rcpp_result_gen = Rcpp::wrap(emFit(y, nobs, nvar, ncat, nlv, nroot, nlink, nleaf, nlink_unique, nleaf_unique, tree_index, root, ulv, vlv, leaf, cstr_link, cstr_leaf, nclass, nclass_leaf, nclass_u, nclass_v, init_param, restr0, max_iter, tol, verbose, newiter, reg));
+    return rcpp_result_gen;
+END_RCPP
+}
+// fll
+double fll(NumericVector logit, IntegerVector y, int nobs, IntegerVector nvar, List ncat, int nlv, int nr, int nrl, int nlf, int ntau, int nrho, int nprob, IntegerVector rl, IntegerVector ul, IntegerVector vl, IntegerVector lf, IntegerVector eqrl, IntegerVector eqlf, IntegerVector nc, IntegerVector nk, IntegerVector nl, IntegerVector ncl, IntegerVector nc_pi, IntegerVector nk_tau, IntegerVector nl_tau, IntegerVector nc_rho, LogicalVector restr0, IntegerVector ref, bool reg);
+RcppExport SEXP _slcm_fll(SEXP logitSEXP, SEXP ySEXP, SEXP nobsSEXP, SEXP nvarSEXP, SEXP ncatSEXP, SEXP nlvSEXP, SEXP nrSEXP, SEXP nrlSEXP, SEXP nlfSEXP, SEXP ntauSEXP, SEXP nrhoSEXP, SEXP nprobSEXP, SEXP rlSEXP, SEXP ulSEXP, SEXP vlSEXP, SEXP lfSEXP, SEXP eqrlSEXP, SEXP eqlfSEXP, SEXP ncSEXP, SEXP nkSEXP, SEXP nlSEXP, SEXP nclSEXP, SEXP nc_piSEXP, SEXP nk_tauSEXP, SEXP nl_tauSEXP, SEXP nc_rhoSEXP, SEXP restr0SEXP, SEXP refSEXP, SEXP regSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type logit(logitSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type y(ySEXP);
+    Rcpp::traits::input_parameter< int >::type nobs(nobsSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type nvar(nvarSEXP);
+    Rcpp::traits::input_parameter< List >::type ncat(ncatSEXP);
+    Rcpp::traits::input_parameter< int >::type nlv(nlvSEXP);
+    Rcpp::traits::input_parameter< int >::type nr(nrSEXP);
+    Rcpp::traits::input_parameter< int >::type nrl(nrlSEXP);
+    Rcpp::traits::input_parameter< int >::type nlf(nlfSEXP);
+    Rcpp::traits::input_parameter< int >::type ntau(ntauSEXP);
+    Rcpp::traits::input_parameter< int >::type nrho(nrhoSEXP);
+    Rcpp::traits::input_parameter< int >::type nprob(nprobSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type rl(rlSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type ul(ulSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type vl(vlSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type lf(lfSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type eqrl(eqrlSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type eqlf(eqlfSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type nc(ncSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type nk(nkSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type nl(nlSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type ncl(nclSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type nc_pi(nc_piSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type nk_tau(nk_tauSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type nl_tau(nl_tauSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type nc_rho(nc_rhoSEXP);
+    Rcpp::traits::input_parameter< LogicalVector >::type restr0(restr0SEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type ref(refSEXP);
+    Rcpp::traits::input_parameter< bool >::type reg(regSEXP);
+    rcpp_result_gen = Rcpp::wrap(fll(logit, y, nobs, nvar, ncat, nlv, nr, nrl, nlf, ntau, nrho, nprob, rl, ul, vl, lf, eqrl, eqlf, nc, nk, nl, ncl, nc_pi, nk_tau, nl_tau, nc_rho, restr0, ref, reg));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -348,8 +417,11 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_slcm_log_add_exp", (DL_FUNC) &_slcm_log_add_exp, 2},
+    {"_slcm_log_sum_exp", (DL_FUNC) &_slcm_log_sum_exp, 1},
     {"_slcm_calcModel", (DL_FUNC) &_slcm_calcModel, 24},
+    {"_slcm_emFit2", (DL_FUNC) &_slcm_emFit2, 9},
     {"_slcm_emFit", (DL_FUNC) &_slcm_emFit, 28},
+    {"_slcm_fll", (DL_FUNC) &_slcm_fll, 29},
     {"_slcm_floglik", (DL_FUNC) &_slcm_floglik, 24},
     {"_slcm_pi_gnr", (DL_FUNC) &_slcm_pi_gnr, 1},
     {"_slcm_tau_gnr", (DL_FUNC) &_slcm_tau_gnr, 2},

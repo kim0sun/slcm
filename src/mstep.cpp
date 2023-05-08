@@ -65,9 +65,15 @@ void updateTau(
       int nk, int nl, int *restr
 ) {
    for (int l = 0; l < nl; l ++) {
-      for (int k = 0; k < nk; k ++) {
-         if (restr[k]) tau[k] = R_NegInf;
-         else tau[k] = numer[k] - denom[l];
+      if (denom[l] == R_NegInf) {
+         for (int k = 0; k < nk; k ++) {
+            tau[k] = R_NegInf;
+         }
+      } else {
+         for (int k = 0; k < nk; k ++) {
+            if (restr[k]) tau[k] = R_NegInf;
+            else tau[k] = numer[k] - denom[l];
+         }
       }
       tau  += nk;
       numer += nk;
@@ -82,14 +88,25 @@ void updateRho(
       int *restr
 ) {
    for (int k = 0; k < nclass; k ++) {
-      for (int m = 0; m < nvar; m ++) {
-         for (int r = 0; r < ncat[m]; r ++) {
-            if (restr[r]) rho[r] = R_NegInf;
-            else rho[r] = numer[r] - denom[k];
+      if (denom[k] == R_NegInf) {
+         for (int m = 0; m < nvar; m ++) {
+            for (int r = 0; r < ncat[m]; r ++) {
+               rho[r] = R_NegInf;
+            }
+            rho   += ncat[m];
+            numer += ncat[m];
+            restr += ncat[m];
          }
-         rho   += ncat[m];
-         numer += ncat[m];
-         restr += ncat[m];
+      } else {
+         for (int m = 0; m < nvar; m ++) {
+            for (int r = 0; r < ncat[m]; r ++) {
+               if (restr[r]) rho[r] = R_NegInf;
+               else rho[r] = numer[r] - denom[k];
+            }
+            rho   += ncat[m];
+            numer += ncat[m];
+            restr += ncat[m];
+         }
       }
    }
 }
