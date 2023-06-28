@@ -1,112 +1,100 @@
-estimate <- function(method, control, data, args, init.param, restr) {
-   if (method == "em") {
-      if (control$verbose) cat("EM iteration begin.\n")
-      em_fit <- emFit(
-         data$y, args$nobs, args$nvar, args$ncat,
-         args$nlv, args$nroot, args$nlink, args$nleaf,
-         args$nlink_unique, args$nleaf_unique,
-         args$tree_index - 1, args$root - 1,
-         args$u - 1, args$v - 1, args$leaf - 1,
-         args$cstr_link - 1, args$cstr_leaf - 1,
-         args$nclass, args$nclass_leaf,
-         args$nclass_u, args$nclass_v,
-         init.param, unlist(restr$restr0),
-         control$em.iterlim, control$em.tol,
-         control$verbose, control$new.iter
-      )
-      log_par <- em_fit$params
-      em.conv <- em_fit$converged
-      nlm.conv <- NA
-      if (control$verbose) cat(".. done.\n")
-   } else if (method == "nlm") {
-      logits <- log2logit(
-         init.param, length(unlist(init.param)), args$ncat,
-         args$nroot, args$nlink_unique, args$nleaf_unique,
-         args$nclass_root, args$nclass_leaf,
-         args$nclass_u, args$nclass_v,
-         unlist(restr$restr0), unlist(restr$ref) - 1
-      )
-      if (control$verbose) cat("nlm iteration begin.\n")
-      find <- is.finite(logits)
-      nlm_fit <- nlm(
-         floglik, logits[find], y = data$y,
-         nobs = args$nobs, nvar = args$nvar, ncat = args$ncat,
-         nlv = args$nlv, nroot = args$nroot,
-         nlink = args$nlink, nlink_unique = args$nlink_unique,
-         nleaf = args$nleaf, nleaf_unique = args$nleaf_unique,
-         root = args$root - 1, ulv = args$u - 1,
-         vlv = args$v - 1, cstr_link = args$cstr_link - 1,
-         leaf = args$leaf - 1, cstr_leaf = args$cstr_leaf - 1,
-         nclass = args$nclass, nclass_leaf = args$nclass_leaf,
-         nclass_u = args$nclass_u, nclass_v = args$nclass_v,
-         restr0 = unlist(restr$restr0), ref = unlist(restr$ref) - 1,
-         iterlim = control$nlm.iterlim, steptol = control$nlm.tol
-      )
-      logits[find] <- nlm_fit$estimate
-      log_par <- logit2log(
-         logits, args$ncat, args$nroot,
-         args$nlink_unique, args$nleaf_unique,
-         args$root - 1, args$u - 1, args$v - 1,
-         args$nclass_root, args$nclass_leaf,
-         args$nclass_u, args$nclass_v,
-         unlist(restr$restr0), unlist(restr$ref) - 1
-      )
-      em.conv <- NA
-      nlm.conv <- nlm_fit$code < 3
-      if (control$verbose) cat(".. done.\n")
-   } else if (method == "hybrid") {
-      if (control$verbose) cat("EM iteration begin.\n")
-      em_fit <- emFit(
-         data$y, args$nobs, args$nvar, args$ncat,
-         args$nlv, args$nroot, args$nlink, args$nleaf,
-         args$nlink_unique, args$nleaf_unique,
-         args$tree_index - 1, args$root - 1,
-         args$u - 1, args$v - 1, args$leaf - 1,
-         args$cstr_link - 1, args$cstr_leaf - 1,
-         args$nclass, args$nclass_leaf,
-         args$nclass_u, args$nclass_v,
-         init.param, unlist(restr$restr0),
-         control$em.iterlim, control$em.tol,
-         control$verbose, control$new.iter
-      )
-      log_par <- em_fit$params
-      logits <- log2logit(
-         log_par, length(unlist(log_par)), args$ncat,
-         args$nroot, args$nlink_unique, args$nleaf_unique,
-         args$nclass_root, args$nclass_leaf,
-         args$nclass_u, args$nclass_v,
-         unlist(restr$restr0), unlist(restr$ref) - 1
-      )
-      if (control$verbose) cat(".. done. \nnlm iteration begin.\n")
-      find <- is.finite(logits)
-      nlm_fit <- nlm(
-         floglik, logits[find], y = data$y,
-         nobs = args$nobs, nvar = args$nvar, ncat = args$ncat,
-         nlv = args$nlv, nroot = args$nroot,
-         nlink = args$nlink, nlink_unique = args$nlink_unique,
-         nleaf = args$nleaf, nleaf_unique = args$nleaf_unique,
-         root = args$root - 1, ulv = args$u - 1,
-         vlv = args$v - 1, cstr_link = args$cstr_link - 1,
-         leaf = args$leaf - 1, cstr_leaf = args$cstr_leaf - 1,
-         nclass = args$nclass, nclass_leaf = args$nclass_leaf,
-         nclass_u = args$nclass_u, nclass_v = args$nclass_v,
-         restr0 = unlist(restr$restr0), ref = unlist(restr$ref) - 1,
-         iterlim = control$nlm.iterlim, steptol = control$nlm.tol
-      )
-      logits[find] <- nlm_fit$estimate
-      log_par <- logit2log(
-         logits, args$ncat, args$nroot,
-         args$nlink_unique, args$nleaf_unique,
-         args$root - 1, args$u - 1, args$v - 1,
-         args$nclass_root, args$nclass_leaf,
-         args$nclass_u, args$nclass_v,
-         unlist(restr$restr0), unlist(restr$ref) - 1
-      )
+#' Estimation for Parameters of \code{slcm} Object
+#' @aliases estimate estimate.slcm
+#' @usage
+#'
+#' estimate(object, ...)
+#'
+#' \method{estimate}{slcm}(object, data,
+#'     method = c("em", "hybrid", "nlm"),
+#'     restriction = NULL,
+#'     control = slcmControl(), ...)
+#'
+#' @param object a \code{slcm} object which defines latent structure to be estimated.
+#' @param data a \code{data.frame} object which contains observed categorical variables beloning to the latent structure.
+#' @param formula a \code{formula} object introducing exogenous covariates.
+#' @param nrep number of trial
+#' @param method estimating method for slcm parameters.
+#' @param restriction a \code{list} of parameters to be restricted to zero.
+#' @param control slcm control.
+#'
+#' @export
+estimate <- function(object, ...) UseMethod("estimate")
 
-      em.conv  <- em_fit$converged
-      nlm.conv <- nlm_fit$code < 3
-      if (control$verbose) cat(".. done.\n")
+#' @export
+estimate.slcm <- function(
+      object, data, formula,
+      method = c("em", "hybrid", "nlm"),
+      fix2zero = NULL,
+      control = slcmControl(), ...
+) {
+   method <- match.arg(method)
+   if (inherits(object, "estimated")) mf <- object$mf
+   else {
+      if (missing(data)) data = parent.frame()
+      mf <- proc_data(data, object$model, object$num)
    }
 
-   list(par = log_par, conv = c(EM = em.conv, nlm = nlm.conv))
+   if (!inherits(control, "slcmControl")) {
+      ctrl <- slcmControl()
+      index <- match(names(control), names(ctrl), 0L)
+      ctrl[index] <- control[!is.na(index)]
+      control <- ctrl
+   }
+
+   arg <- arguments(object$model, mf, fix2zero)
+
+   if (inherits(object, "estimated")) {
+      par <- object$par
+   } else if (!is.null(control$init.param)) {
+      init.param <- unlist(control$init.param)
+      if (all(init.param >= 0))
+         par <- unlist(tapply(init.param, arg$id, norm1), use.names = FALSE)
+      else
+         par <- unlist(tapply(init.param, arg$id, norm2), use.names = FALSE)
+   } else {
+      for (i in 1:control$nrep) {
+         init.param <- runif(length(arg$id))
+         init.param[arg$fix0] <- -Inf
+         par <- unlist(tapply(init.param, arg$id, norm2), use.names = FALSE)
+      }
+   }
+   par[arg$fix0] <- -Inf
+   est <- estModel(method, control, par, mf, arg)
+   par <- est$par
+   conv <- est$conv
+   logit <- par - par[arg$ref_idx[arg$id]]
+
+   etc <- calcModel(
+      attr(mf, "y"), arg$nobs, arg$nvar, unlist(arg$nlev),
+      par, arg$fix0, arg$ref - 1, arg$nlv, arg$nrl, arg$nlf,
+      arg$npi, arg$ntau, arg$nrho, arg$ul, arg$vl,
+      arg$lf, arg$tr, arg$rt, arg$eqrl, arg$eqlf,
+      arg$nc, arg$nk, arg$nl, arg$ncl,
+      arg$nc_pi, arg$nk_tau, arg$nl_tau, arg$nc_rho, arg$nr_rho
+   )
+   score <- relist(etc$score, arg$skeleton$score)
+   score <- t(do.call(rbind, score))
+   dimnames(score) <- list(dimnames(mf)[[1]], unlist(arg$par_index))
+
+   post <- relist(exp(etc$post), arg$skeleton$post)
+   joint <- relist(exp(etc$joint), arg$skeleton$joint)
+
+   object$method = method
+   object$arg <- arg
+   object$mf <- mf
+   object$par <- par
+   object$logit <- logit
+   object$fix2zero <- fix2zero
+   object$score <- score
+   object$posterior <- list(
+      marginal = lapply(post, t), joint = joint
+   )
+   object$convergence <- conv
+   object$loglikelihood <- etc$ll
+   object$control <- control
+
+   class(object) <- c("slcm", "estimated")
+   object
 }
+
+

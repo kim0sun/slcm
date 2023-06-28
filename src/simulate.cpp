@@ -1,109 +1,63 @@
 #include <Rcpp.h>
-#include "param.h"
 #include "auxiliary.h"
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-IntegerVector root_gnr(
-   int nobs, int nk,
-   Nullable<NumericVector> prob = R_NilValue
+List simModel(
+      int nobs, IntegerVector nvar, List nlev, NumericVector par,
+      int nlv, int nrl, int nlf, int npi, int ntau, int nrho,
+      IntegerVector ul, IntegerVector vl, IntegerVector lf,
+      IntegerVector rt, IntegerVector eqrl, IntegerVector eqlf,
+      IntegerVector nc, IntegerVector nk, IntegerVector nl, IntegerVector ncl,
+      IntegerVector nc_pi, IntegerVector nk_tau, IntegerVector nl_tau,
+      IntegerVector nc_rho, IntegerVector nr_rho
 ) {
-   NumericVector pi;
-   if (prob.isNull()) {
-      pi = pi_gnr(nk);
-   } else {
-      pi = as<NumericVector>(prob);
+   List y(nlf);
+   IntegerMatrix cl(nobs, nlv);
+   double *_par_ = par.begin();
+
+   std::vector<double*> _pi_(npi);
+   std::vector<double*> _tau_(ntau);
+   std::vector<double*> _rho_(nrho);
+
+   for (int r = 0; r < npi; r ++) {
+      for (int i = 0; i < nobs; i ++) {
+         cl(i, rt[r]) = sample1(nc_pi[r], _par_);
+      }
+      _par_ += nc_pi[r];
+   }
+   for (int d = 0; d < ntau; d ++) {
+      _tau_[d] = _par_;
+      _par_ += nk_tau[d] * nl_tau[d];
+   }
+   for (int v = 0; v < nrho; v ++) {
+      _rho_[v] = _par_;
+      _par_ += nr_rho[v] * nc_rho[v];
    }
 
-   IntegerVector cls(nobs);
-   for (int i = 0; i < nobs; i ++) {
-      cls[i] = sample1(nk, pi.begin());
-   }
-
-   return cls;
-}
-
-// [[Rcpp::export]]
-IntegerVector cls_gnr(
-   int nobs, int nk, int nl, IntegerVector v,
-   Nullable<NumericMatrix> prob = R_NilValue
-) {
-   NumericMatrix tau;
-   if (prob.isNull()) {
-      tau = tau_gnr(nk, nl);
-   } else {
-      tau = as<NumericMatrix>(prob);
-   }
-
-   IntegerVector cls(nobs);
-   double *ptau = tau.begin();
-   for (int i = 0; i < nobs; i ++) {
-      cls[i] = sample1(nk, ptau + v[i] * nk);
-   }
-
-   return cls;
-}
-
-// [[Rcpp::export]]
-IntegerMatrix y_gnr(
-   int nobs, int nk, IntegerVector ncat,
-   IntegerVector cls,
-   Nullable<NumericMatrix> prob = R_NilValue
-) {
-   NumericMatrix rho;
-   if (prob.isNull()) {
-      rho = rho_gnr(nk, ncat);
-   } else {
-      rho = as<NumericMatrix>(prob);
-   }
-
-   int nvar = ncat.length();
-   IntegerMatrix y(nvar, nobs);
-   for (int i = 0; i < nobs; i ++) {
-      double *pos = rho.begin() + cls[i] * sum(ncat);
-      for (int m = 0; m < nvar; m ++) {
-         y[i * nvar + m] = sample1(ncat[m], pos) + 1;
-         pos += ncat[m];
+   for (int d = 0; d < nrl; d ++) {
+      double* tau = _tau_[eqrl[d]];
+      for (int i = 0; i < nobs; i ++) {
+         cl(i, ul[d]) = sample1(nk[d], tau + nk[d] * cl(i, vl[d]));
       }
    }
 
-   return y;
-}
-
-// [[Rcpp::export]]
-List ysim(
-   int nsim, List ncat, int nlv, IntegerVector root, IntegerVector leaf,
-   Nullable<IntegerVector> ulv, Nullable<IntegerVector> vlv,
-   Nullable<IntegerVector> cstr_link, IntegerVector cstr_leaf,
-   int nroot, int nleaf, int nlink, IntegerVector nclass,
-   List pi, List tau, List rho, bool print_class
-) {
-   List cls(nlv);
-
-   for (int r = 0; r < nroot; r ++)
-      cls[root[r]] = root_gnr(nsim, nclass[root[r]], pi[r]);
-
-   if (ulv.isNotNull() && vlv.isNotNull()) {
-      IntegerVector u = as<IntegerVector>(ulv);
-      IntegerVector v = as<IntegerVector>(vlv);
-      IntegerVector clink = as<IntegerVector>(cstr_link);
-      for (int d = 0; d < nlink; d ++) {
-         cls[u[d]] = cls_gnr(nsim, nclass[u[d]], nclass[v[d]],
-                             cls[v[d]], tau[clink[d]]);
+   for (int u = 0 ; u < nlf; u ++) {
+      IntegerVector lev = nlev[eqlf[u]];
+      NumericMatrix yy(nobs, nvar[eqlf[u]]);
+      for (int i = 0; i < nobs; i ++) {
+         double* rho = _rho_[eqlf[u]] + sum(lev) * cl(i, lf[u]);
+         for (int m = 0; m < nvar[eqlf[u]]; m ++) {
+            yy(i, m) = sample1(lev[m], rho);
+            rho += lev[m];
+         }
       }
+      y[u] = yy;
    }
 
-   List y(nleaf);
-   for (int v = 0; v < nleaf; v ++)
-      y[v] = y_gnr(nsim, nclass[leaf[v]], ncat[cstr_leaf[v]],
-                   cls[leaf[v]], rho[cstr_leaf[v]]);
+   List res;
+   res["class"] = cl;
+   res["y"] = y;
 
-   if (print_class) {
-      List ret;
-      ret["y"] = y;
-      ret["class"] = cls;
-      return ret;
-   }
-
-   return y;
+   return res;
 }

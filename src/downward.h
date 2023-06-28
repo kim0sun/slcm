@@ -8,12 +8,12 @@ void dnInit(
    double *ll, int nobs, int nclass, bool reg
 );
 
-double calcll(
+double calclr(
    double *lambda, double *pi,
    int nobs, int nclass, bool reg
 );
 
-void calclli(
+void calclri(
    double *lambda, double *pi, double *ll,
    int nobs, int nclass, bool reg
 );

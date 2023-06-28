@@ -1,4 +1,4 @@
-proc_restr <- function(restriction, param, args) {
+proc_restr <- function(target, param, args) {
    restr <- list()
    num_param <- number_par(param, restriction)
    numbers <- num_param$numbers

@@ -7,26 +7,24 @@ rep_row <- function(x, lev) {
 
 split_by_name <- function(x, f) lapply(f, function(i) x[i])
 
-stretch_data <- function(items, mf) {
-   m <- split_by_name(mf, items)
+stretch_data <- function(child, mf) {
+   m <- split_by_name(mf, child)
    y <- lapply(m, function(x) t(sapply(x, as.numeric)))
    unlist(unname(y))
 }
 
-proc_saturated <- function(mf, ncat) {
-   lev <- lapply(ncat, seq_len)
-   if (all(unlist(mf) > 0)) {
-      yobs <- mf
+proc_saturated <- function(mfn, nlev, mis) {
+   lev <- lapply(nlev, seq_len)
+   if (!mis) {
+      yobs <- mfn
       y_aggr <- aggregate(numeric(nrow(yobs)), yobs, length)
       y_unique <- y_aggr[, -ncol(y_aggr)]
       freq <- y_aggr[, ncol(y_aggr)]
-      loglik <- sum(freq * log(freq / sum(freq)))
-
-      res <- list(y = y_unique, freq = freq, loglik = loglik)
+      loglik <- c(freq %*% (log(freq) - log(sum(freq))))
    } else {
-      na_ind <- rowSums(mf == 0) > 0
-      yobs <- mf[!na_ind, , drop = FALSE]
-      ymis <- mf[ na_ind, , drop = FALSE]
+      na_ind <- rowSums(mfn == 0) > 0
+      yobs <- mfn[!na_ind, , drop = FALSE]
+      ymis <- mfn[ na_ind, , drop = FALSE]
 
       yobs0 <- aggregate(numeric(nrow(yobs)), yobs, length)
       ymis0 <- aggregate(numeric(nrow(ymis)), ymis, length)
@@ -39,53 +37,53 @@ proc_saturated <- function(mf, ncat) {
       freq <- y_aggr[, ncol(y0)]
 
       nrep <- apply(ymis0[, -ncol(ymis0)], 1,
-                    function(x) prod(ncat[x == 0]))
+                    function(x) prod(nlev[x == 0]))
       miss <- match(apply(y_expand, 1, paste, collapse = ""),
                     apply(y_unique, 1, paste, collapse = "")) - 1
 
-      misEM <- calcfreq(miss, nrep, nrow(ymis0),
-                        ymis0[, ncol(ymis0)], freq,
-                        nrow(y_aggr), nrow(mf), 1e-5, 100)
+      calc_mis <- calcfreq(
+         miss, nrep, nrow(ymis0), ymis0[, ncol(ymis0)],
+         freq, nrow(y_aggr), nrow(mfn), 1e-6, 500
+      )
 
-      loglik <- sum(misEM$freq * log(misEM$theta)) + misEM$loglik
-
-      res <- list(y = y_unique, freq = calc_mis$freq, loglik = loglik)
+      freq <- calc_mis$freq
+      loglik <- sum(calc_mis$freq * log(calc_mis$theta), na.rm = TRUE) + calc_mis$loglik
    }
 
-   res
+   list(y_unique = y_unique,
+        freq = freq,
+        loglik = loglik)
 }
 
+
 proc_data <- function(data, model, saturate = TRUE) {
-   items <- model$vars$manifest
-   f <- paste("~", paste(unlist(items), collapse = "+"))
-   mf <- mf_raw <- model.frame(formula(f), data)
-   mf[] <- lapply(mf, factor)
-   level <- lapply(mf, levels)
-   ncat <- sapply(mf, nlevels)
-   if (any(ncat < 2))
-      stop("Some manifest variables have fewer than 2 categories")
-   mf[] <- lapply(mf, as.numeric)
-   mf[is.na(mf)] = 0
-   dims <- dimnames(mf)
+   child <- model$measure$indicator
+   f <- paste("~", paste(unlist(child), collapse = "+"))
+   mf <- mf_raw <- model.frame(formula(f), data, na.action = NULL)
+   mf[] <- lapply(mf, function(x)
+      if (is.factor(x)) x else factor(x))
+   lev <- lapply(mf, levels)
+   nlev <- sapply(mf, nlevels)
+   if (any(nlev < 2))
+      stop("wrong indicator variable(s) (< 2 level):\n",
+           paste0("`", unlist(child)[nlev < 2], "`", collapse = " "))
 
-   if (any(!unlist(items) %in% dims[[2]]))
-      stop("Following manifest variables not found:\n ",
-           paste(unlist(items)[!unlist(items) %in% dims[[2]]],
-                 collapse = " "))
+   attr(mf, "levels") <- lev
 
-   if (!saturate) return(list(y = stretch_data(items, mf),
-                               nobs = nrow(mf),
-                               dimnames = dims))
+   mfn <- mf
+   mfn[] <- lapply(mf, as.numeric)
+   mfn[is.na(mfn)] <- 0
+   y <- lapply(child, function(x) t(mfn[x]))
+   attr(mf, "y") <- unlist(y)
 
-   saturated <- proc_saturated(mf, ncat)
-   saturated$y <- stretch_data(items, saturated$y)
+   misInd <- which(is.na(mf), arr.ind = TRUE)
+   sat <- proc_saturated(mfn, nlev, any(is.na(mf)))
+   attr(mf, "misInd") <- misInd
+   attr(mf, "y_unique") <- sat$y_unique
+   attr(mf, "freq") <- sat$freq
+   attr(mf, "df") <- length(sat$freq) - 1
+   attr(mf, "loglik") <- sat$loglik
 
-   list(raw = data[dims[[1]],],
-        y = stretch_data(items, mf),
-        nobs = nrow(mf),
-        ncat = split_by_name(ncat, items),
-        level = split_by_name(level, items),
-        saturated = saturated,
-        dimnames = dims)
+   mf
 }
 

@@ -1,233 +1,209 @@
 #include <Rcpp.h>
 #include "upward.h"
 #include "downward.h"
-#include "transform.h"
 using namespace Rcpp;
 
 // [[Rcpp::export]]
 List calcModel(
-      List param, IntegerVector y, int nobs,
-      IntegerVector nvar, List ncat,
-      int nlv, int nroot, int nlink, int nleaf,
-      int nlink_unique, int nleaf_unique,
-      IntegerVector root, IntegerVector tree_index,
-      IntegerVector ulv, IntegerVector vlv, IntegerVector leaf,
-      IntegerVector cstr_link, IntegerVector cstr_leaf,
-      IntegerVector nclass, IntegerVector nclass_leaf,
-      IntegerVector nclass_u, IntegerVector nclass_v,
-      List ref, bool reg = false
+      IntegerVector y,
+      int nobs, IntegerVector nvar, IntegerVector nlev,
+      NumericVector par, LogicalVector fix0, IntegerVector ref,
+      int nlv, int nrl, int nlf, int npi, int ntau, int nrho,
+      IntegerVector ul, IntegerVector vl, IntegerVector lf,
+      IntegerVector tr, IntegerVector rt, IntegerVector eqrl, IntegerVector eqlf,
+      IntegerVector nc, IntegerVector nk, IntegerVector nl, IntegerVector ncl,
+      IntegerVector nc_pi, IntegerVector nk_tau, IntegerVector nl_tau,
+      IntegerVector nc_rho, IntegerVector nr_rho
 ) {
-   List lst_pi = param["pi"];
-   List lst_tau = param["tau"];
-   List lst_rho = param["rho"];
-   std::vector<double*> ptr_pi(nroot);
-   std::vector<double*> ptr_tau(nlink_unique);
-   std::vector<double*> ptr_rho(nleaf_unique);
+   int *_y_;
+   int *_ref_ = ref.begin();
+   NumericVector score(nobs * par.length());
+   double *_par_ = par.begin();
+   double *_scr_ = score.begin();
 
-   List score_pi(nroot);
-   List score_tau(nlink_unique);
-   List score_rho(nleaf_unique);
-   std::vector<double*> ptr_spi(nroot);
-   std::vector<double*> ptr_stau(nlink_unique);
-   std::vector<double*> ptr_srho(nleaf_unique);
+   std::vector<double*> _pi_(npi);
+   std::vector<double*> _tau_(ntau);
+   std::vector<double*> _rho_(nrho);
 
-   for (int r = 0; r < nroot; r ++) {
-      int nk = nclass[root[r]];
-      NumericVector pi = lst_pi[r];
-      NumericMatrix s_pi(nk, nobs);
-      ptr_pi[r] = pi.begin();
-      score_pi[r] = s_pi;
-      ptr_spi[r] = s_pi.begin();
+   std::vector<double*> _scr1_(npi);
+   std::vector<double*> _scr2_(ntau);
+   std::vector<double*> _scr3_(nrho);
+
+   std::vector<int*> _ref1_(ntau);
+   std::vector<int*> _ref2_(nrho);
+
+   std::vector<double*> _ll_(npi);
+   std::vector<double*> _a_(nlv), _l_(nlv), _j_(nrl);
+   std::vector<double*> _post_(nlv), _joint_(nrl);
+   std::vector<int*> _nlev_(nrho);
+
+   for (int r = 0; r < npi; r ++) {
+      _pi_[r] = _par_;
+      _scr1_[r] = _scr_;
+
+      _par_ += nc_pi[r];
+      _scr_ += nc_pi[r] * nobs;
+   }
+   _ref_ += npi;
+
+   for (int d = 0; d < ntau; d ++) {
+      _tau_[d] = _par_;
+      _scr2_[d] = _scr_;
+      _ref1_[d] = _ref_;
+      _par_ += nk_tau[d] * nl_tau[d];
+      _scr_ += nk_tau[d] * nl_tau[d] * nobs;
+      _ref_ += nl_tau[d];
    }
 
-   for (int d = 0; d < nlink_unique; d ++) {
-      int nk = nclass_u[d], nl = nclass_v[d];
-      NumericMatrix tau = lst_tau[d];
-      NumericMatrix s_tau(nl * nk, nobs);
-      ptr_tau[d] = tau.begin();
-      score_tau[d] = s_tau;
-      ptr_stau[d] = s_tau.begin();
+   int *_lev_ = nlev.begin();
+   for (int v = 0; v < nrho; v ++) {
+      _rho_[v] = _par_;
+      _scr3_[v] = _scr_;
+      _ref2_[v] = _ref_;
+      _nlev_[v] = _lev_;
+
+      _par_ += nr_rho[v] * nc_rho[v];
+      _scr_ += nr_rho[v] * nc_rho[v] * nobs;
+      _ref_ += nvar[v] * nc_rho[v];
+      _lev_ += nvar[v];
    }
 
-   for (int v = 0; v < nleaf_unique; v ++) {
-      int nk = nclass_leaf[v];
-      IntegerVector ncatv = ncat[v];
-      NumericVector rho = lst_rho[v];
-      NumericMatrix s_rho(nk * sum(ncatv), nobs);
-      ptr_rho[v] = rho.begin();
-      score_rho[v] = s_rho;
-      ptr_srho[v] = s_rho.begin();
+   NumericMatrix ll(nobs, npi);
+   double *_tmp1_ = ll.begin();
+   for (int r = 0; r < npi; r ++) {
+      _ll_[r] = _tmp1_;
+      _tmp1_ += nobs;
    }
 
-   NumericVector ll(nobs);
-   List lst_ll(nroot);
-   List lst_a(nlv), lst_l(nlv), lst_j(nlink);
-   std::vector<double*> ptr_ll(nroot);
-   std::vector<double*> ptr_a(nlv), ptr_l(nlv), ptr_j(nlink);
-
-   List lst_post(nlv), lst_joint(nlink);
-   std::vector<double*> ptr_post(nlv), ptr_joint(nlink);
-
-   for (int r = 0; r < nroot; r ++) {
-      NumericVector ll(nobs);
-      lst_ll[r] = ll;
-      ptr_ll[r] = ll.begin();
+   NumericVector j(nobs * sum(nl));
+   NumericVector joint(nobs * sum(nk * nl));
+   _tmp1_ = j.begin();
+   double *_tmp2_ = joint.begin();
+   for (int d = 0; d < nrl; d ++) {
+      _j_[d] = _tmp1_;
+      _joint_[d] = _tmp2_;
+      _tmp1_ += nl[d] * nobs;
+      _tmp2_ += nk[d] * nl[d] * nobs;
    }
 
-   for (int d = 0; d < nlink; d ++) {
-      int u = ulv[d], v = vlv[d];
-      NumericMatrix joint(nclass[u] * nclass[v], nobs);
-      ptr_joint[d] = joint.begin();
-      lst_joint[d] = joint;
-      NumericMatrix jlambda(nclass[v], nobs);
-      ptr_j[d] = jlambda.begin();
-      lst_j[d] = jlambda;
-   }
-
-   for (int v = 0; v < nlv; v ++) {
-      NumericMatrix post(nclass[v], nobs);
-      NumericMatrix alpha(nclass[v], nobs);
-      NumericMatrix lambda(nclass[v], nobs);
-      ptr_post[v] = post.begin();
-      ptr_a[v] = alpha.begin();
-      ptr_l[v] = lambda.begin();
-      lst_post[v] = post;
-      lst_a[v] = alpha;
-      lst_l[v] = lambda;
+   NumericVector alpha(nobs * sum(nc));
+   NumericVector lambda(nobs * sum(nc));
+   NumericVector post(nobs * sum(nc));
+   _tmp1_ = alpha.begin();
+   _tmp2_ = lambda.begin();
+   double *_tmp3_ = post.begin();
+   for (int u = 0; u < nlv; u ++) {
+      _a_[u] = _tmp1_;
+      _l_[u] = _tmp2_;
+      _post_[u] = _tmp3_;
+      _tmp1_ += nc[u] * nobs;
+      _tmp2_ += nc[u] * nobs;
+      _tmp3_ += nc[u] * nobs;
    }
 
    // (expectation-step)
    // initiate lambda
-   int *y_ = y.begin();
-   for (int v = 0; v < nleaf; v ++) {
-      upInit(y_, ptr_rho[cstr_leaf[v]],
-             ptr_l[leaf[v]], nclass[leaf[v]],
-             nobs, nvar[cstr_leaf[v]],
-             ncat[cstr_leaf[v]]);
-      y_ += nobs * nvar[cstr_leaf[v]];
+   _y_ = y.begin();
+   for (int v = 0; v < nlf; v ++) {
+      upInit(_y_, _rho_[eqlf[v]], _l_[lf[v]], ncl[v],
+             nobs, nvar[eqlf[v]], _nlev_[eqlf[v]]);
+      _y_ += nobs * nvar[eqlf[v]];
    }
 
    // upward recursion
-   for (int d = nlink - 1; d > -1; d --) {
-      int u = ulv[d], v = vlv[d];
-      upRec(ptr_l[v], ptr_j[d], ptr_l[u],
-            ptr_tau[cstr_link[d]],
-            nobs, nclass[u], nclass[v], reg);
+   for (int d = nrl - 1; d > -1; d --) {
+      int u = ul[d], v = vl[d];
+      upRec(_l_[v], _j_[d], _l_[u], _tau_[eqrl[d]],
+            nobs, nk[d], nl[d], false);
    }
 
    // calculate loglik
-   for (int r = 0; r < nroot; r ++) {
-      calclli(ptr_l[root[r]], ptr_pi[r], ll.begin(),
-              nobs, nclass[root[r]], reg);
+   for (int r = 0; r < npi; r ++) {
+      calclri(_l_[rt[r]], _pi_[r], _ll_[r],
+              nobs, nc_pi[r], false);
    }
 
    // initiate alpha
-   for (int r = 0; r < nroot; r ++) {
-      dnInit(ptr_a[root[r]], ptr_l[root[r]],
-             ptr_pi[r], ptr_post[root[r]],
-             ptr_ll[r], nobs, nclass[root[r]], reg);
+   for (int r = 0; r < npi; r ++) {
+      dnInit(_a_[rt[r]], _l_[rt[r]], _pi_[r], _post_[rt[r]],
+             _ll_[r], nobs, nc_pi[r], false);
    }
 
    // Downward recursion
-   for (int d = 0; d < nlink; d ++) {
-      int u = ulv[d], v = vlv[d];
-      dnRec(ptr_a[u], ptr_a[v],
-            ptr_l[u], ptr_l[v], ptr_j[d],
-            nobs, nclass[u], nclass[v],
-            ptr_tau[cstr_link[d]],
-            ptr_post[u], ptr_joint[d],
-            ptr_ll[tree_index[d]], reg);
+   for (int d = 0; d < nrl; d ++) {
+      int u = ul[d], v = vl[d];
+      dnRec(_a_[u], _a_[v], _l_[u], _l_[v], _j_[d], nobs, nk[d], nl[d],
+            _tau_[eqrl[d]], _post_[u], _joint_[d], _ll_[tr[d]], false);
    }
 
-   IntegerVector ref_pi = ref[0];
-   for (int r = 0; r < nroot; r ++) {
-      int nk = nclass[root[r]];
-      double *score_ = ptr_spi[r];
-      double *post_ = ptr_post[root[r]];
-      double *pi_ = ptr_pi[r];
+   // score function
+   _ref_ = ref.begin();
+   for (int r = 0; r < npi; r ++) {
+      _scr_ = _scr1_[r];
+      _tmp1_ = _post_[rt[r]];
+      _tmp2_ = _pi_[r];
       for (int i = 0; i < nobs; i ++) {
-         for (int k = 0; k < nk; k ++) {
-            if (k == ref_pi[r] - 1) score_[k] = R_NaN;
-            else score_[k] = exp(post_[k]) - exp(pi_[k]);
+         for (int k = 0; k < nc_pi[r]; k ++) {
+            if (k == _ref_[r]) _scr_[k] = R_NaN;
+            else _scr_[k] = exp(_tmp1_[k]) - exp(_tmp2_[k]);
          }
-         score_ += nk;
-         post_  += nk;
+         _tmp1_ += nc_pi[r];
+         _scr_ += nc_pi[r];
       }
    }
 
-   List ref_tau = ref[1];
-   for (int d = 0; d < nlink; d ++) {
-      int u = ulv[d], v = vlv[d];
-      double *score_ = ptr_stau[cstr_link[d]];
-      double *joint_ = ptr_joint[d];
-      double *post_ = ptr_post[v];
-      IntegerVector ref_ = ref_tau[cstr_link[d]];
+   for (int d = 0; d < nrl; d ++) {
+      int u = eqrl[d];
+      _scr_ = _scr2_[u];
+      _ref_ = _ref1_[u];
+      _tmp1_ = _joint_[d];
+      _tmp2_ = _post_[vl[d]];
       for (int i = 0; i < nobs; i ++) {
-         double *tau_ = ptr_tau[cstr_link[d]];
-         for (int l = 0; l < nclass[v]; l ++) {
-            for (int k = 0; k < nclass[u]; k ++) {
-               if (k == ref_[l] - 1) score_[k] = R_NaN;
-               else score_[k] += exp(joint_[k]) - exp(tau_[k] + post_[l]);
+         _tmp3_ = _tau_[u];
+         for (int l = 0; l < nl[d]; l ++) {
+            for (int k = 0; k < nk[d]; k ++) {
+               if (k == _ref_[l]) _scr_[k] = R_NaN;
+               else _scr_[k] += exp(_tmp1_[k]) - exp(_tmp2_[l] + _tmp3_[k]);
             }
-            score_ += nclass[u];
-            joint_ += nclass[u];
-            tau_ += nclass[u];
+            _scr_ += nk[d];
+            _tmp1_ += nk[d];
+            _tmp3_ += nk[d];
          }
-         post_ += nclass[v];
+         _tmp2_ += nl[d];
       }
    }
 
-   y_ = y.begin();
-   List ref_rho = ref[2];
-   for (int v = 0; v < nleaf; v ++) {
-      int nk = nclass[leaf[v]];
-      IntegerVector ncatv = ncat[cstr_leaf[v]];
-      double *score_ = ptr_srho[cstr_leaf[v]];
-      double *post_ = ptr_post[v];
-      IntegerVector ref_ = ref_rho[cstr_leaf[v]];
+   _y_ = y.begin();
+   for (int v = 0; v < nlf; v ++) {
+      int u = eqlf[v];
+      _scr_ = _scr3_[u];
+      _lev_ = _nlev_[u];
+      _tmp1_ = _post_[lf[v]];
       for (int i = 0; i < nobs; i ++) {
-         int *_ref_ = ref_.begin();
-         double *rho_ = ptr_rho[cstr_leaf[v]];
-         for (int k = 0; k < nk; k ++) {
-            for (int m = 0; m < nvar[cstr_leaf[v]]; m ++) {
-               if (y_[m] != _ref_[m])
-                  score_[y_[m] - 1] += exp(post_[k]);
-               for (int r = 0; r < ncatv[m]; r ++) {
-                  if (r == _ref_[m] - 1)
-                     score_[r] = R_NaN;
-                  else score_[r] -= exp(rho_[r] + post_[k]);
+         _tmp2_ = _rho_[u];
+         _ref_ = _ref2_[u];
+         for (int k = 0; k < nc_rho[u]; k ++) {
+            for (int m = 0; m < nvar[u]; m ++) {
+               _scr_[_y_[m] - 1] += exp(_tmp1_[k]);
+               for (int r = 0; r < _lev_[m]; r ++) {
+                  if (r == _ref_[m]) _scr_[r] = R_NaN;
+                  else _scr_[r] -= exp(_tmp1_[k] + _tmp2_[r]);
                }
-               score_ += ncatv[m];
-               rho_ += ncatv[m];
+               _scr_ += _lev_[m];
+               _tmp2_ += _lev_[m];
             }
-            _ref_ += nvar[cstr_leaf[v]];
+            _ref_ += nvar[u];
          }
-         post_ += nk;
-         y_ += nvar[cstr_leaf[v]];
+         _tmp1_ += nc_rho[u];
+         _y_ += nvar[u];
       }
    }
-
-   // Posterior transpose
-   for (int v = 0; v < nlv; v ++) {
-      NumericMatrix post = lst_post[v];
-      lst_post[v] = transpose(post);
-   }
-   for (int d = 0; d < nlink; d ++) {
-      NumericMatrix joint = lst_joint[d];
-      lst_joint[d] = transpose(joint);
-   }
-
-   List score;
-   score["pi"] = score_pi;
-   score["tau"] = score_tau;
-   score["rho"] = score_rho;
 
    List res;
    res["ll"] = ll;
    res["score"] = score;
-   res["post"] = lst_post;
-   res["joint"] = lst_joint;
-   res["lambda"] = lst_l;
+   res["post"] = post;
+   res["joint"] = joint;
 
    return res;
 }

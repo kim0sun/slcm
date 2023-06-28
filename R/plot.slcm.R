@@ -1,38 +1,35 @@
 #' @export
 plot.slcm <- function(x, abbreviation = FALSE, dir = "TD",
                         equal_rank = NULL, font = "Helvetica", ...) {
-   if (abbreviation) {
-      manifest = lapply(x$model$vars$manifest, function(x)
-         paste0("'", x[1], " ~ ", x[length(x)], "'"))
-   } else {
-      manifest = lapply(x$model$vars$manifest, function(x)
-         paste0("'", x, "'"))
-   }
-   latent = lapply(x$model$vars$latent, function(x)
-      paste0("'", x, "'"))
+   latent <- x$model$latent
+   tree <- x$model$tree
 
-   var_def <- paste0(
+   latent$child <- NA
+   latent$child[latent$leaf] <- if (abbreviation)
+      sapply(latent$children[latent$leaf], function(x)
+         paste0("'", x[1], " ~ ", x[length(x)], "'")) else
+            sapply(latent$children[latent$leaf], function(x)
+               paste0("'", x, "'", collapse = ", "))
+   latent$child[!latent$leaf] <-
+      sapply(latent$children[!latent$leaf], function(x)
+         paste0("'", x, "'", collapse = ", "))
+
+   node <- paste0(
       "node [shape = box]\n",
-      paste(unlist(manifest), collapse = ", "),
+      paste(tree$child[tree$leaf], collapse = ", "),
       "\n\n node [shape = oval]\n",
-      paste(c(x$model$label), collapse = ", ")
+      paste(rownames(latent), collapse = ", ")
    )
-   msr_path = paste(sapply(names(manifest), function(x)
-      paste(x, "-> {", paste(manifest[[x]], collapse = ", "), "}")),
-      collapse = "\n")
-   str_path <- paste(sapply(names(latent), function(x)
-      paste(x, "-> {", paste(latent[[x]], collapse = ", "), "}")),
-      collapse = "\n")
+   path <- paste(paste(rownames(latent), " -> {", latent$child, "}"), collapse = "\n")
    if (!missing(equal_rank)) {
-      equal_rank <- equal_rank[equal_rank %in% x$model$label]
+      equal_rank <- equal_rank[equal_rank %in% row.names(latent)]
       ranks <- paste0("{rank = same; '", paste0(equal_rank, collapse = "';'"), "';}")
    }
 
    text <- paste0(
       "digraph { \n  rankdir = '", dir, "';",
       "node[fontname = '", font, "']\n\n",
-      var_def, "\n\n", msr_path, "\n",
-      str_path, "\n\n",
+      node, "\n\n", path, "\n\n",
       if (!missing(equal_rank)) ranks, "\n}"
    )
 

@@ -9,71 +9,23 @@ log_sum_exp <- function(x) {
     .Call(`_slcm_log_sum_exp`, x)
 }
 
-calcModel <- function(param, y, nobs, nvar, ncat, nlv, nroot, nlink, nleaf, nlink_unique, nleaf_unique, root, tree_index, ulv, vlv, leaf, cstr_link, cstr_leaf, nclass, nclass_leaf, nclass_u, nclass_v, ref, reg = FALSE) {
-    .Call(`_slcm_calcModel`, param, y, nobs, nvar, ncat, nlv, nroot, nlink, nleaf, nlink_unique, nleaf_unique, root, tree_index, ulv, vlv, leaf, cstr_link, cstr_leaf, nclass, nclass_leaf, nclass_u, nclass_v, ref, reg)
+calcModel <- function(y, nobs, nvar, nlev, par, fix0, ref, nlv, nrl, nlf, npi, ntau, nrho, ul, vl, lf, tr, rt, eqrl, eqlf, nc, nk, nl, ncl, nc_pi, nk_tau, nl_tau, nc_rho, nr_rho) {
+    .Call(`_slcm_calcModel`, y, nobs, nvar, nlev, par, fix0, ref, nlv, nrl, nlf, npi, ntau, nrho, ul, vl, lf, tr, rt, eqrl, eqlf, nc, nk, nl, ncl, nc_pi, nk_tau, nl_tau, nc_rho, nr_rho)
 }
 
-emFit2 <- function(y, num, idx, nclass, dim, par, reg, restr0, control) {
-    .Call(`_slcm_emFit2`, y, num, idx, nclass, dim, par, reg, restr0, control)
+em_est <- function(y, nobs, nvar, nlev, par_origin, fix0, nlv, nrl, nlf, npi, ntau, nrho, ul, vl, lf, tr, rt, eqrl, eqlf, nc, nk, nl, ncl, nc_pi, nk_tau, nl_tau, nc_rho, nr_rho, max_iter, tol, verbose, newiter) {
+    .Call(`_slcm_em_est`, y, nobs, nvar, nlev, par_origin, fix0, nlv, nrl, nlf, npi, ntau, nrho, ul, vl, lf, tr, rt, eqrl, eqlf, nc, nk, nl, ncl, nc_pi, nk_tau, nl_tau, nc_rho, nr_rho, max_iter, tol, verbose, newiter)
 }
 
-emFit <- function(y, nobs, nvar, ncat, nlv, nroot, nlink, nleaf, nlink_unique, nleaf_unique, tree_index, root, ulv, vlv, leaf, cstr_link, cstr_leaf, nclass, nclass_leaf, nclass_u, nclass_v, init_param, restr0, max_iter, tol, verbose, newiter = 100L, reg = FALSE) {
-    .Call(`_slcm_emFit`, y, nobs, nvar, ncat, nlv, nroot, nlink, nleaf, nlink_unique, nleaf_unique, tree_index, root, ulv, vlv, leaf, cstr_link, cstr_leaf, nclass, nclass_leaf, nclass_u, nclass_v, init_param, restr0, max_iter, tol, verbose, newiter, reg)
-}
-
-fll <- function(logit, y, nobs, nvar, ncat, nlv, nr, nrl, nlf, ntau, nrho, nprob, rl, ul, vl, lf, eqrl, eqlf, nc, nk, nl, ncl, nc_pi, nk_tau, nl_tau, nc_rho, restr0, ref, reg = FALSE) {
-    .Call(`_slcm_fll`, logit, y, nobs, nvar, ncat, nlv, nr, nrl, nlf, ntau, nrho, nprob, rl, ul, vl, lf, eqrl, eqlf, nc, nk, nl, ncl, nc_pi, nk_tau, nl_tau, nc_rho, restr0, ref, reg)
-}
-
-floglik <- function(logit, y, nobs, nvar, ncat, nlv, nroot, nlink, nlink_unique, nleaf, nleaf_unique, root, ulv, vlv, cstr_link, leaf, cstr_leaf, nclass, nclass_leaf, nclass_u, nclass_v, restr0, ref, reg = FALSE) {
-    .Call(`_slcm_floglik`, logit, y, nobs, nvar, ncat, nlv, nroot, nlink, nlink_unique, nleaf, nleaf_unique, root, ulv, vlv, cstr_link, leaf, cstr_leaf, nclass, nclass_leaf, nclass_u, nclass_v, restr0, ref, reg)
-}
-
-pi_gnr <- function(nk) {
-    .Call(`_slcm_pi_gnr`, nk)
-}
-
-tau_gnr <- function(nk, nl) {
-    .Call(`_slcm_tau_gnr`, nk, nl)
-}
-
-rho_gnr <- function(nk, ncat) {
-    .Call(`_slcm_rho_gnr`, nk, ncat)
-}
-
-par_gnr <- function(nobs, nvar, ncat, nroot, nlink_unique, nleaf_unique, root, ulv, vlv, nclass, nclass_leaf, nclass_u, nclass_v, init, init_param) {
-    .Call(`_slcm_par_gnr`, nobs, nvar, ncat, nroot, nlink_unique, nleaf_unique, root, ulv, vlv, nclass, nclass_leaf, nclass_u, nclass_v, init, init_param)
+fll <- function(y, par, nobs, nvar, nlev, nlv, nrl, nlf, npi, ntau, nrho, ul, vl, lf, tr, rt, eqrl, eqlf, nc, nk, nl, ncl, nc_pi, nk_tau, nl_tau, nc_rho, nr_rho) {
+    .Call(`_slcm_fll`, y, par, nobs, nvar, nlev, nlv, nrl, nlf, npi, ntau, nrho, ul, vl, lf, tr, rt, eqrl, eqlf, nc, nk, nl, ncl, nc_pi, nk_tau, nl_tau, nc_rho, nr_rho)
 }
 
 calcfreq <- function(mis, nrep, nmis, freq, xobs, nc, N, tol, max_iter) {
     .Call(`_slcm_calcfreq`, mis, nrep, nmis, freq, xobs, nc, N, tol, max_iter)
 }
 
-root_gnr <- function(nobs, nk, prob = NULL) {
-    .Call(`_slcm_root_gnr`, nobs, nk, prob)
-}
-
-cls_gnr <- function(nobs, nk, nl, v, prob = NULL) {
-    .Call(`_slcm_cls_gnr`, nobs, nk, nl, v, prob)
-}
-
-y_gnr <- function(nobs, nk, ncat, cls, prob = NULL) {
-    .Call(`_slcm_y_gnr`, nobs, nk, ncat, cls, prob)
-}
-
-ysim <- function(nsim, ncat, nlv, root, leaf, ulv, vlv, cstr_link, cstr_leaf, nroot, nleaf, nlink, nclass, pi, tau, rho, print_class) {
-    .Call(`_slcm_ysim`, nsim, ncat, nlv, root, leaf, ulv, vlv, cstr_link, cstr_leaf, nroot, nleaf, nlink, nclass, pi, tau, rho, print_class)
-}
-
-logit2log <- function(logit, ncat, nroot, nlink_unique, nleaf_unique, root, ulv, vlv, nclass_root, nclass_leaf, nclass_u, nclass_v, restr, ref) {
-    .Call(`_slcm_logit2log`, logit, ncat, nroot, nlink_unique, nleaf_unique, root, ulv, vlv, nclass_root, nclass_leaf, nclass_u, nclass_v, restr, ref)
-}
-
-log2logit <- function(param, npar, ncat, nroot, nlink_unique, nleaf_unique, nclass_root, nclass_leaf, nclass_u, nclass_v, restr, ref) {
-    .Call(`_slcm_log2logit`, param, npar, ncat, nroot, nlink_unique, nleaf_unique, nclass_root, nclass_leaf, nclass_u, nclass_v, restr, ref)
-}
-
-param2list <- function(param, ncat, nroot, nlink_unique, nleaf_unique, root, ulv, vlv, nclass_root, nclass_u, nclass_v, nclass_leaf) {
-    .Call(`_slcm_param2list`, param, ncat, nroot, nlink_unique, nleaf_unique, root, ulv, vlv, nclass_root, nclass_u, nclass_v, nclass_leaf)
+simModel <- function(nobs, nvar, nlev, par, nlv, nrl, nlf, npi, ntau, nrho, ul, vl, lf, rt, eqrl, eqlf, nc, nk, nl, ncl, nc_pi, nk_tau, nl_tau, nc_rho, nr_rho) {
+    .Call(`_slcm_simModel`, nobs, nvar, nlev, par, nlv, nrl, nlf, npi, ntau, nrho, ul, vl, lf, rt, eqrl, eqlf, nc, nk, nl, ncl, nc_pi, nk_tau, nl_tau, nc_rho, nr_rho)
 }
 

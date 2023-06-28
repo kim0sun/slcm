@@ -17,11 +17,12 @@ regress.slcm <- function(
       imputation = c("modal", "prob"),
       method = c("naive", "BCH", "ML"), ...
 ) {
-   if (!object$fitted) stop("Latent variable model should be estimated.")
+   if (!inherits(object, "estimated"))
+      stop("Latent variable model should be estimated.")
 
    # Import
    labels <- all.vars(formula)
-   latent <- labels[labels %in% object$model$label]
+   latent <- labels[labels %in% object$model$latent$label]
    imputation <- match.arg(imputation)
    method <- match.arg(method)
 
@@ -36,7 +37,7 @@ regress.slcm <- function(
    }
 
    imputed <- lapply(object$posterior[latent], impute, imputation)
-   data <- data.frame(object$data$raw, imputed)
+   data <- data.frame(data, imputed)
    mf <- model.frame(formula, data)
 
    # Functions

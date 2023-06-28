@@ -1,144 +1,157 @@
-label_formula <- function(fmla) {
-   if (length(fmla) == 2) {
-      return(NULL)
-   }
-   all.vars(fmla)[1]
+get_lformula <- function(f) {
+   lhs <- deparse(f[[2]])
+   lhs_split <- strsplit(lhs, "[()]|\\[|\\]")[[1]]
+
+   attr(f, "label") <- lhs_split[1]
+   attr(f, "nclass") <- as.numeric(lhs_split[2])
+   attr(f, "vars") <- labels(terms(f))
+
+   f
 }
 
-nclass_formula <- function(fmla) {
-   lhs <- fmla[[2]]
-   part_lhs <- as.character(lhs)
-   nclass <- setdiff(part_lhs, all.names(lhs))
-   return(as.numeric(nclass))
-}
-
-get_lformula <- function(fmla) {
-   attr(fmla, "label") = label_formula(fmla)
-   attr(fmla, "nclass") = nclass_formula(fmla)
-   attr(fmla, "vars") = labels(terms(fmla))
-
-   fmla
-}
-
-proc_edge <- function(edges) {
-   label <- levels(edges$ind)
-   links <- edges
-   index_root <- logical(nrow(links))
-   stage <- integer(nrow(links))
-   while (any(!index_root)) {
-      copy_links <- links
-      names(copy_links) <- c("ind", "ind2")
-      merged <- merge(links, copy_links, all.x = TRUE, sort = FALSE)
-      rooted <- which(is.na(merged[[3]]))
-      stage[rooted] <- stage[rooted] + 1
-      index_root[rooted] <- TRUE
-      merged$ind2[rooted] <- merged$ind[rooted]
-      links <- data.frame(
-         values = merged$values,
-         ind = merged$ind2
-      )
+proc_tree <- function(nc, iv) {
+   tree <- data.frame(
+      parent = iv[,1], "->", child = iv[,2],
+      fix.empty.names = FALSE
+   )
+   for (i in seq_len(nrow(tree))) {
+      par <- tree$parent[i]
+      rank <- 1
+      while (par %in% tree$child) {
+         rank <- rank + 1
+         par <- tree$parent[tree$child == par]
+      }
+      tree$root[i] <- par
+      tree$rank[i] <- rank
+      tree$leaf[i] <- !(tree$child[i] %in% tree$parent)
    }
 
-   rt <- data.frame(root = links$ind, lv = edges$ind)
-   root <- as.character(unique(rt$root))
-   leaf <- as.character(unique(edges$ind[!edges$values %in% label]))
-   tree <- unique(rt[order(rt$lv),])$root
+   parent <- unique(tree$parent)
+   child <- unique(tree$child)
+   label <- union(intersect(child, parent), parent)
+   leaf <- tapply(tree$leaf, tree$parent, any)
+   rank <- tapply(tree$rank, tree$parent, max)
+   root <- sapply(label, "%in%", tree$root)
+   nvar <- tapply(tree$child, tree$parent, length)
+   indv <- tapply(tree$child, tree$parent, c)
+   latent <- data.frame(
+      nclass = as.numeric(nc[label, drop = FALSE]),
+      leaf = leaf[label, drop = FALSE],
+      rank = rank[label, drop = FALSE],
+      root = root[label, drop = FALSE],
+      nvar = nvar[label, drop = FALSE],
+      children = I(indv[label, drop = FALSE]),
+      row.names = label
+   )
+   leaf <- label[latent$leaf]
 
-   root <- factor(root, levels = label)
-   leaf <- factor(leaf, levels = label)
-   tree <- factor(tree, levels = as.character(root))
+   obs <- lapply(indv, function(x)
+      x[!(x %in% label)])
+   measure <- data.frame(
+      nclass = as.numeric(nc[leaf, drop = FALSE]),
+      nvar = sapply(obs, length)[leaf, drop = FALSE],
+      indicator = I(obs[leaf, drop = FALSE]),
+      row.names = leaf
+   )
 
-   links <- edges[order(stage, decreasing = TRUE),]
-   links <- links[links$values %in% label, 2:1]
-   links$values <- factor(links$values, levels = label)
-   links$ind <- factor(as.character(links$ind), levels = label)
+   struct <- tree[!tree$leaf, , drop = FALSE]
+   struct <- struct[order(struct$rank, factor(struct$child, label)), 1:5]
+   rownames(struct) <- NULL
+   struct$parent <- factor(struct$parent, label)
+   struct$child <- factor(struct$child, label)
 
-   rownames(links) = NULL
-   colnames(links) = c("parent", "child")
-
-   return(list(links = links, root = root,
-               leaf = leaf, tree = tree))
+   list(tree = tree,
+        latent = latent,
+        measure = measure,
+        struct = struct)
 }
 
-combine_formula <- function(formula) {
-   label  <- sapply(formula, attr, "label")
-   nclass <- lapply(formula, attr, "nclass")
-   names(nclass) <- label
 
-   lnc <- unique(stack(nclass))
-   if (!setequal(lnc$ind, label)) {
-      stop("Some latent variable has not been assigned number of classes.")
-   }
-   lnc <- lnc[!duplicated(lnc$ind),]
+identify_constr <- function(constr, model) {
+   lt <- model$latent
+   mr <- model$measure
+   st <- model$struct
+   label <- row.names(lt)
+   leaf <- row.names(mr)
 
-   rhs <- lapply(formula, attr, "vars")
-   names(rhs) <- label
+   const_leaf <- letters[seq_len(nrow(mr))]
+   names(const_leaf) <- leaf
+   const_edge <- LETTERS[seq_len(nrow(st))]
 
-   edges <- unique(utils::stack(rhs))
-   vars <- split(edges$values, edges$ind)
-   edges <- proc_edge(edges)
-   manifest <- lapply(vars[edges$leaf], function(x) x[!x %in% label])
-   latent_vars <- lapply(vars, function(x) x[x %in% label])
-   latent <- latent_vars[sapply(latent_vars, length) > 0]
+   if (!is.null(constr) && !is.list(constr))
+      constr <- list(constr)
 
-   list(label = levels(lnc$ind),
-        nclass = lnc, edges = edges,
-        vars = list(manifest = manifest,
-                    latent = latent))
-}
 
-identify_constr <- function(constraints, model_table) {
-   label <- model_table$label
-   nclass <- model_table$nclass$values
-   edges <- model_table$edges
-   leaf <- edges$leaf
-   links <- edges$links
-   cstr_link <- letters[seq_len(nrow(edges$links))]
-   cstr_leaf <- letters[seq_len(length(leaf))]
-
-   for (i in seq_along(constraints)) {
-      constr <- constraints[[i]]
-      rm_arrow <- strsplit(constr, "->|~")
-      rm_space <- lapply(rm_arrow, function(x) sub(" ", "", x))
-      len <- sapply(rm_space, length)
-
-      if (all(len == 1)) {
-         ind <- sapply(rm_space, match, label)
-         cstr_leaf[ind] = i
-      } else if (all(len == 2)) {
-         plink <- apply(edges$links, 1, paste0, collapse = "")
-         ind <- sapply(rm_space, function(x)
-            match(paste0(x, collapse = ""), plink))
-         cstr_link[ind] = i
+   for (i in seq_along(constr)) {
+      constr[[i]] <- gsub(" ", "", constr[[i]])
+      const <- deparse(constr[[i]])
+      con <- strsplit(constr[[i]], "->|~")
+      type <- unique(lengths(con))
+      if (length(type) != 1) {
+         warning("Wrong constraint: ", const, call. = FALSE)
+         next
+      }
+      if (type == 1) {
+         islf <- sapply(con, "%in%", leaf)
+         if (sum(islf) > 1) {
+            con <- con[islf]
+            dims <- lapply(con, function(x)
+               unlist(mr[as.character(x), 1:2]))
+            if (length(unique(dims)) == 1) {
+                const_leaf[unlist(con)] <- i
+            } else {
+               warning("Wrong constraint: ", const, call. = FALSE)
+               next
+            }
+         } else {
+            warning("Wrong constraint: ", const, call. = FALSE)
+            next
+         }
+      } else if (type == 2) {
+         nclass <- lapply(con, function(x) lt[x, "nclass"])
+         if (length(unique(nclass)) == 1) {
+            pl <- apply(st[, c("parent", "child")], 1, paste0, collapse = "~")
+            pc <- sapply(con, paste0, collapse = "~")
+            const_edge[match(pc, pl)] <- i
+         } else {
+            warning(i, "th constraint is wrong.")
+            next
+         }
       } else {
+         warning("Wrong constraint: ", const, call. = FALSE)
          next
       }
    }
 
-   cstr_leaf <- as.numeric(factor(cstr_leaf))
-   cstr_link <- as.numeric(factor(cstr_link))
-   nclass_leaf <- nclass[leaf[cstr_leaf[!duplicated(cstr_leaf)]]]
-   nclass_u <- nclass[links$child[cstr_link[!duplicated(cstr_link)]]]
-   nclass_v <- nclass[links$parent[cstr_link[!duplicated(cstr_link)]]]
+   reval <- function(x, c) c[factor(x, unique(x))]
+   mr$constraint <- reval(const_leaf, letters)
+   st$constraint <- reval(const_edge, LETTERS)
 
-   list(cstr_leaf = as.numeric(factor(cstr_leaf)),
-        cstr_link = as.numeric(factor(cstr_link)),
-        nclass_leaf = nclass_leaf,
-        nclass_u = nclass_u, nclass_v = nclass_v,
-        constr = constraints)
+   list(tree = model$tree,
+        latent = lt,
+        measure = mr,
+        struct = st,
+        constraints = constr)
 }
 
-proc_formula <- function(formula, constraints) {
+proc_formula <- function(formula, constr) {
    formula <- sapply(formula, get_lformula)
-   model_table <- combine_formula(formula)
-   constr <- identify_constr(constraints, model_table)
+   label  <- sapply(formula, attr, "label")
+   nclass <- lapply(formula, attr, "nclass")
+   indvar <- lapply(formula, attr, "vars")
 
-   list(label = model_table$label,
-        nclass = model_table$nclass$values,
-        root = model_table$edges$root,
-        leaf = model_table$edges$leaf,
-        tree = model_table$edges$tree,
-        links = model_table$edges$links,
-        vars = model_table$vars,
-        constr = constr)
+   nc <- cbind(rep(label, lengths(nclass)), unlist(nclass))
+   iv <- cbind(rep(label, lengths(indvar)), unlist(indvar))
+
+   nclass <- tapply(nc[,2], nc[,1], function(x) unique(x[!is.na(x)]))
+   indvar <- tapply(iv[,2], iv[,1], function(x) unique(x[!is.na(x)]))
+   err1 <- sapply(nclass, length)
+   if (!all(err1 == 1)) stop("wrong number of classes for ", paste(
+      paste0("`", names(err1)[err1 != 1], "`"), collapse = ", "))
+   err2 <- table(unlist(indvar))
+   if (!all(err2 == 1)) stop("wrong number of parents for ", paste(
+      paste0("`", names(err2)[err2 != 1], "`"), collapse = ", "))
+
+   model <- proc_tree(nclass, iv)
+   identify_constr(constr, model)
 }

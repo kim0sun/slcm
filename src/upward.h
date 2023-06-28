@@ -4,7 +4,7 @@
 #include <Rcpp.h>
 void upInit(
    int *y, const double *ptr_rho, double *lambda,
-   int nk, int nobs, int nvar, Rcpp::IntegerVector ncat
+   int nk, int nobs, int nvar, int *ncat
 );
 
 void upRec(

@@ -11,22 +11,12 @@ using namespace Rcpp;
 //   http://gallery.rcpp.org/
 //
 
-void inside(double* x, double* y) {
-   *y = *x;
-}
 // [[Rcpp::export]]
-NumericVector timesTwo(NumericVector x) {
-   NumericVector y(x.length());
-   double *_x_ = x.begin();
-   double *_y_ = y.begin();
-
-   for (int i = 0; i < x.length(); i ++) {
-      inside(_x_ ++, _y_ ++);
-   }
-
-   return y;
+int timesTwo(IntegerVector x) {
+   unsigned int* b;
+   int a = rand_r(b);
+   return a;
 }
-
 
 
 // You can include R code blocks in C++ files processed with sourceCpp
@@ -35,5 +25,5 @@ NumericVector timesTwo(NumericVector x) {
 //
 
 /*** R
-timesTwo(1:5)
+timesTwo(42)
 */

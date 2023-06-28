@@ -8,51 +8,51 @@
 #'
 #' @export
 simulate.slcm <- function(
-   object, nsim = 500, params = NULL, ncat = 2, seed, ...
+   object, nobs = 500, nlevel = 2,
+   what = c("response", "class", "probs"),
+   params = NULL, seed, ...
 ) {
-   if (!missing(seed)) set.seed(seed)
-   args <- object$args
-   args$ncat <- if (!is.null(args$ncat)) args$ncat
-   else lapply(args$nvar, function(x) rep(ncat, x))
+   cl <- match.call()
+   model <- object$model
 
-   if (object$fitted) {
-      params <- object$args$log_par
-      pi <- params$pi
-      tau <- params$tau
-      rho <- params$rho
+   if (inherits(object, "estimated")) {
+      level <- levels(object$mf)
+      arg <- arguments_nmf(model, nobs, level)
+      par <- object$par
    } else {
-      pi <- params$pi
-      tau <- params$tau
-      rho <- params$rho
-      if (length(pi) < args$nroot)
-         pi <- lapply(seq_len(args$nroot), function(x) NULL)
-      for (r in seq_len(args$nroot)) {
-         pi[[r]] <- pi_valid(pi[[r]], args$nclass[args$root[r]], TRUE)
-      }
-      if (length(tau) < args$nlink_unique)
-         tau <- lapply(seq_len(args$nlink_unique), function(x) NULL)
-      for (d in seq_len(args$nlink_unique)) {
-         tau[[d]] <- tau_valid(tau[[d]], args$nclass_u[d], args$nclass_v[d], TRUE)
-      }
-      if (length(rho) < args$nleaf_unique)
-         rho <- lapply(seq_len(args$nleaf_unique), function(x) NULL)
-      for (v in seq_len(args$nleaf_unique)) {
-         rho[[v]] <- rho_valid(rho[[v]], args$nclass_leaf[v], args$ncat[[v]], TRUE)
+      level <- sapply(unlist(model$latent$children), function(x)
+         seq_len(nlevel), simplify = FALSE)
+      arg <- arguments_nmf(model, nobs, level)
+      if (missing(params)) {
+         params <- runif(length(arg$id))
+         par <- unlist(tapply(params, arg$id, norm1), use.names = FALSE)
+      } else {
+         if (is.list(params)) params <- unlist(params)
+         if (all(params >= 0))
+         par <- unlist(tapply(params, arg$id, norm1), use.names = FALSE)
+         else
+         par <- unlist(tapply(params, arg$id, norm2), use.names = FALSE)
       }
    }
-
-   ysim <- ysim(
-      nsim, args$ncat, args$nlv, args$root - 1, args$leaf - 1,
-      args$u - 1, args$v - 1, args$cstr_link - 1, args$cstr_leaf - 1,
-      args$nroot, args$nleaf, args$nlink, args$nclass,
-      pi, tau, rho, TRUE
+   sim <- simModel(
+      nobs, arg$nvar, arg$nlev, object$par,
+      arg$nlv, arg$nrl, arg$nlf, arg$npi, arg$ntau, arg$nrho,
+      arg$ul, arg$vl, arg$lf, arg$rt, arg$eqrl, arg$eqlf,
+      arg$nc, arg$nk, arg$nl, arg$ncl,
+      arg$nc_pi, arg$nk_tau, arg$nl_tau, arg$nc_rho, arg$nr_rho
    )
+   class <- data.frame(sim$class)
+   names(class) <- model$latent$label
 
    # data.name
-   y <- data.frame(do.call(cbind, lapply(ysim$y, t)))
-   colnames(y) <- unlist(object$model$vars$manifest)
+   y <- data.frame(do.call(cbind, sim$y))
+   colnames(y) <- unlist(model$latent[model$latent$leaf, "children"])
+   mf <- proc_data(y, model)
 
-   list(response = y, class = ysim$class, args = args,
-        params = output_param(list(pi = pi, tau = tau, rho = rho),
-                              object$model, args))
+   res <- list(response = mf, class = sim$class,
+        probs = relist(exp(par), arg$skeleton$par))
+
+   if (!("what" %in% names(cl)))
+      return(res$response)
+   res[match.arg(what, several.ok = TRUE)]
 }

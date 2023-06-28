@@ -19,7 +19,7 @@ void cumTau(
 
 void cumRho(
       const double *numer, double *denom,
-      int *y, int nobs, int nvar, IntegerVector ncat,
+      int *y, int nobs, int nvar, int *ncat,
       int nk, double *post, const double *old_rho
 ) {
    for (int i = 0; i < nobs; i ++) {
@@ -84,7 +84,7 @@ void updateTau(
 
 void updateRho(
       double *rho, double *numer, double *denom,
-      int nobs, int nclass, int nvar, IntegerVector ncat,
+      int nobs, int nclass, int nvar, int *ncat,
       int *restr
 ) {
    for (int k = 0; k < nclass; k ++) {
@@ -150,7 +150,7 @@ void updateB(
 
 void updateC(
       double *rho, double *numer, double *denom,
-      int nobs, int nclass, int nvar, IntegerVector ncat,
+      int nobs, int nclass, int nvar, int *ncat,
       int *restr
 ) {
    for (int k = 0; k < nclass; k ++) {

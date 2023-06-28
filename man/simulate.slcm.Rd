@@ -5,16 +5,24 @@
 \title{Simulate \code{slcm} Object
 Simulate data from \code{slcm} model.}
 \usage{
-\method{simulate}{slcm}(object, nsim = 500, params = NULL, ncat = 2, seed, ...)
+\method{simulate}{slcm}(
+  object,
+  nobs = 500,
+  nlevel = 2,
+  what = c("response", "class", "probs"),
+  params = NULL,
+  seed,
+  ...
+)
 }
 \arguments{
 \item{object}{a \code{slcm} object}
 
-\item{nsim}{number of response data to simulate. Defaults to 100.}
-
 \item{params}{parameters to be designated}
 
 \item{seed}{random seed}
+
+\item{nsim}{number of response data to simulate. Defaults to 100.}
 }
 \description{
 Simulate \code{slcm} Object

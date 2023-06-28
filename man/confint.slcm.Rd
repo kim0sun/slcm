@@ -6,7 +6,7 @@
 \usage{
 \method{confint}{slcm}(
   object,
-  parm,
+  parm = c("pi", "tau", "rho"),
   level = 0.95,
   method = c("asymp", "logit"),
   out = c("param", "logit")
