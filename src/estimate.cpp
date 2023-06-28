@@ -7,16 +7,16 @@ using namespace Rcpp;
 
 // [[Rcpp::export]]
 List em_est(
-   IntegerVector y,
-   int nobs, IntegerVector nvar, IntegerVector nlev,
-   NumericVector par_origin, LogicalVector fix0,
-   int nlv, int nrl, int nlf, int npi, int ntau, int nrho,
-   IntegerVector ul, IntegerVector vl, IntegerVector lf,
-   IntegerVector tr, IntegerVector rt, IntegerVector eqrl, IntegerVector eqlf,
-   IntegerVector nc, IntegerVector nk, IntegerVector nl, IntegerVector ncl,
-   IntegerVector nc_pi, IntegerVector nk_tau, IntegerVector nl_tau,
-   IntegerVector nc_rho, IntegerVector nr_rho,
-   int max_iter, double tol, bool verbose, int newiter
+      IntegerVector y,
+      int nobs, IntegerVector nvar, IntegerVector nlev,
+      NumericVector par_origin, LogicalVector fix0,
+      int nlv, int nrl, int nlf, int npi, int ntau, int nrho,
+      IntegerVector ul, IntegerVector vl, IntegerVector lf,
+      IntegerVector tr, IntegerVector rt, IntegerVector eqrl, IntegerVector eqlf,
+      IntegerVector nc, IntegerVector nk, IntegerVector nl, IntegerVector ncl,
+      IntegerVector nc_pi, IntegerVector nk_tau, IntegerVector nl_tau,
+      IntegerVector nc_rho, IntegerVector nr_rho,
+      int max_iter, double tol, bool verbose, int newiter
 ) {
    int *_y_;
    NumericVector par = clone(par_origin);
@@ -31,6 +31,7 @@ List em_est(
    std::vector<double*> _tau_d_(ntau), _tau_ss_(ntau);
    std::vector<double*> _rho_d_(nrho), _rho_ss_(nrho);
 
+   std::vector<double*> _ll_(npi);
    std::vector<double*> _a_(nlv), _l_(nlv), _j_(nrl);
    std::vector<double*> _post_(nlv), _joint_(nrl);
 
@@ -75,11 +76,15 @@ List em_est(
    }
 
    NumericMatrix ll(nobs, npi);
-   double *_ll_ = ll.begin();
+   double *_tmp1_ = ll.begin();
+   for (int r = 0; r < npi; r ++) {
+      _ll_[r] = _tmp1_;
+      _tmp1_ += nobs;
+   }
 
    NumericVector j(nobs * sum(nl));
    NumericVector joint(nobs * sum(nk * nl));
-   double *_tmp1_ = j.begin();
+   _tmp1_ = j.begin();
    double *_tmp2_ = joint.begin();
    for (int d = 0; d < nrl; d ++) {
       _j_[d] = _tmp1_;
@@ -150,14 +155,14 @@ List em_est(
       // initiate alpha
       for (int r = 0; r < npi; r ++) {
          dnInit(_a_[rt[r]], _l_[rt[r]], _pi_[r], _post_[rt[r]],
-                _ll_, nobs, nc_pi[r], false);
+                _ll_[r], nobs, nc_pi[r], false);
       }
 
       // Downward recursion
       for (int d = 0; d < nrl; d ++) {
          int u = ul[d], v = vl[d];
          dnRec(_a_[u], _a_[v], _l_[u], _l_[v], _j_[d], nobs, nk[d], nl[d],
-               _tau_[eqrl[d]], _post_[u], _joint_[d], _ll_, false);
+               _tau_[eqrl[d]], _post_[u], _joint_[d], _ll_[tr[d]], false);
       }
 
       // build sufficient statistics
