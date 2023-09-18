@@ -3,26 +3,28 @@
 #'
 #' @param object a \code{slcm} object
 #' @param nsim number of response data to simulate. Defaults to 100.
+#' @param nlevel number of categories for each manifest item.
+#' @param what objects to be printed among response, class, probs (params)
 #' @param params parameters to be designated
 #' @param seed random seed
 #'
-#' @export
+#' @exportS3Method stats::simulate slcm
 simulate.slcm <- function(
-   object, nobs = 500, nlevel = 2,
+   object, nsim = 500, nlevel = 2,
    what = c("response", "class", "probs"),
-   params = NULL, seed, ...
+   params = NULL, seed = NULL, ...
 ) {
    cl <- match.call()
    model <- object$model
 
    if (inherits(object, "estimated")) {
       level <- levels(object$mf)
-      arg <- arguments_nmf(model, nobs, level)
+      arg <- arguments_nmf(model, nsim, level)
       par <- object$par
    } else {
       level <- sapply(unlist(model$latent$children), function(x)
          seq_len(nlevel), simplify = FALSE)
-      arg <- arguments_nmf(model, nobs, level)
+      arg <- arguments_nmf(model, nsim, level)
       if (missing(params)) {
          params <- runif(length(arg$id))
          par <- unlist(tapply(params, arg$id, norm1), use.names = FALSE)
@@ -35,7 +37,7 @@ simulate.slcm <- function(
       }
    }
    sim <- simModel(
-      nobs, arg$nvar, arg$nlev, object$par,
+      nsim, arg$nvar, arg$nlev, object$par,
       arg$nlv, arg$nrl, arg$nlf, arg$npi, arg$ntau, arg$nrho,
       arg$ul, arg$vl, arg$lf, arg$rt, arg$eqrl, arg$eqlf,
       arg$nc, arg$nk, arg$nl, arg$ncl,

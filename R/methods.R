@@ -1,4 +1,4 @@
-#' @export
+#' @exportS3Method base::print slcm
 print.slcm <- function(x, ...) {
    lt <- x$model$latent
    mr <- x$model$measure
@@ -46,7 +46,7 @@ print.slcm <- function(x, ...) {
    }
 }
 
-#' @export
+#' @exportS3Method base::summary slcm
 summary.slcm = function(
       object, ...
 ) {
@@ -162,7 +162,7 @@ summary.slcm = function(
 
 #' @export
 param <- function(object, ...) UseMethod("param")
-#' @export
+#' @exportS3Method slcm::param slcm
 param.slcm <- function(
       object, what = c("pi", "tau", "rho"),
       type = c("probs", "logit"),
@@ -190,7 +190,7 @@ param.slcm <- function(
    noquote(ans[what], right = TRUE)
 }
 
-#' @export
+#' @exportS3Method stats::logLik slcm
 logLik.slcm <- function(object, ...) {
    res <- if (inherits(object, "estimated"))
       structure(sum(object$loglikelihood),
@@ -203,7 +203,7 @@ logLik.slcm <- function(object, ...) {
 }
 
 
-#' @method stats::vcov slcm
+#' @exportS3Method stats::vcov slcm
 vcov.slcm <- function(object, type = c("probs", "logit")) {
    if (!inherits(object, "estimated")) return(NA)
    type <- match.arg(type)
@@ -212,7 +212,7 @@ vcov.slcm <- function(object, type = c("probs", "logit")) {
    fi <- crossprod(score)
    vcov <- matrix(0, nrow(fi), ncol(fi), dimnames = dimnames(fi))
    nan <- apply(score, 2, anyNA)
-   vcov[!nan, !nan] <- ginv(fi[!nan, !nan])
+   vcov[!nan, !nan] <- MASS::ginv(fi[!nan, !nan])
 
    if (type == "probs") {
       jac <- bdiag(tapply(object$par, id, jmat))
@@ -225,7 +225,7 @@ vcov.slcm <- function(object, type = c("probs", "logit")) {
 
 #' @export
 se <- function(object, ...) UseMethod("se")
-#' @export
+#' @method slcm::se slcm
 se.slcm <- function(
       object, what = c("pi", "tau", "rho"),
       type = c("probs", "logit"),
@@ -239,7 +239,7 @@ se.slcm <- function(
    vcov <- vcov.slcm(object, type)
    var <- diag(vcov)
    se <- numeric(length(var))
-   se[var > 0] <- sqrt(var[var >= 0])
+   se[var >= 0] <- sqrt(var[var >= 0])
    idx <- seq_along(se)
    skeleton <- object$arg$skeleton$par
 
@@ -251,7 +251,8 @@ se.slcm <- function(
    noquote(ans[what], right = TRUE)
 }
 
-#' @export
+
+#' @exportS3Method stats::reorder slcm
 reorder.slcm = function(x, what, order, ...) {
    latent <- x$model$latent
    const <- x$model$constraint
@@ -265,14 +266,21 @@ reorder.slcm = function(x, what, order, ...) {
 
 
 #' @export
-gof <- function(
-      object, ...,  test = c("none", "chisq", "boot"), nboot = 100,
-      maxiter = 100, tol = 1e-6, verbose = FALSE
+gof <- function(object, ...) UseMethod("gof")
+#' @exportS3Method slcm::gof slcm
+gof.slcm <- function(
+   object, ...,  test = c("none", "chisq", "boot"), nboot = 100,
+   maxiter = 100, tol = 1e-6, verbose = FALSE
 ) {
    cl <- match.call(expand.dots = FALSE)
-   mn <- sapply(c(cl[["object"]], cl[["..."]]), deparse)
-   nmodel <- length(mn)
    objects <- list(object, ...)
+   est <- sapply(objects, inherits, "estimated")
+   mn <- sapply(c(cl[["object"]], cl[["..."]]), deparse)
+   if (all(!est)) stop("at least 1 model should be estimated")
+   objects <- objects[est]
+   mn <- mn[est]
+   nmodel <- length(mn)
+
    test <- match.arg(test)
 
    df <- sapply(objects, function(x) x$arg$df)
@@ -350,9 +358,9 @@ gof <- function(
 
 #' @export
 compare <- function(
-      model1, model2, test = c("chisq", "boot"),
-      nboot = 100, maxiter = 500, tol = 1e-5,
-      verbose = FALSE
+   model1, model2, test = c("chisq", "boot"),
+   nboot = 100, maxiter = 500, tol = 1e-5,
+   verbose = FALSE
 ) {
    models <- list(model1, model2)
    cl <- match.call()
@@ -443,8 +451,7 @@ compare <- function(
              class = c("anova", "data.frame"))
 }
 
-
-#' @export
+#' @exportS3Method stats::predict slcm
 predict.slcm <- function(
       object, newdata, label, type = c("class", "posterior"), ...
 ) {
@@ -490,7 +497,7 @@ predict.slcm <- function(
 #' @param method calculating method for standard error
 #' @param out the type of output
 #'
-#' @export
+#' @exportS3Method stats::confint slcm
 confint.slcm <- function(
       object, parm = c("pi", "tau", "rho"), level = 0.95,
       method = c("asymp", "logit"), out = c("param", "logit")
@@ -500,44 +507,23 @@ confint.slcm <- function(
 
    logit <- object$logit
    vcov <- vcov(object, "logit")
-   se <-
+   vars <- diag(vcov)
+   se <- vars
+   se[] <- 0
+   se[vars >= 0] <- sqrt(vars[vars >= 0])
 
-      lower <- (1 - level) / 2
+   lower <- (1 - level) / 2
    upper <- 1 - lower
    cn <- format.pc(c(lower, upper), 3)
 
    ci_logit <- logit + se %o% qnorm(c(lower, upper))
-   args <- object$args
-   restr <- object$restriction
+   ci_par <- ci_logit
+   ci_par[] <- exp(unlist(apply(ci_logit, 2, tapply, object$arg$id, norm2)))
 
-   switch(out, param = {
-      ci_par <- sapply(seq_len(ncol(ci_logit)), function(i) {
-         cii <- logit2log(
-            ci_logit[, i], args$ncat, args$nroot,
-            args$nlink_unique, args$nleaf_unique,
-            args$root - 1, args$u - 1, args$v - 1,
-            args$nclass_root, args$nclass_leaf,
-            args$nclass_u, args$nclass_v,
-            unlist(restr$restr0), unlist(restr$ref) - 1
-         )
-         unlist(output_param(cii, object$model, args))
-      })
-      ci <- t(apply(ci_par, 1, sort))
-      colnames(ci) <- cn
-      ci
-   }, logit = {
-      ci <- sapply(seq_len(ncol(ci_logit)), function(i) {
-         cii <- param2list(
-            ci_logit[, i], args$ncat, args$nroot,
-            args$nlink_unique, args$nleaf_unique,
-            args$root, args$u, args$v, args$nclass_root,
-            args$nclass_u, args$nclass_v, args$nclass_leaf
-         )
-         unlist(output_param(cii, object$model, args, FALSE))
-      })
-      colnames(ci) <- cn
-      ci
-   })
+   id <- unlist(object$arg$par_index[parm])
+   ci <- switch(out, param = ci_par[id,], logit = ci_logit[id,])
+   colnames(ci) <- cn
+   ci
 }
 
 format.pc <- function(perc, digits)

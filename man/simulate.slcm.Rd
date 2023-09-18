@@ -7,22 +7,26 @@ Simulate data from \code{slcm} model.}
 \usage{
 \method{simulate}{slcm}(
   object,
-  nobs = 500,
+  nsim = 500,
   nlevel = 2,
   what = c("response", "class", "probs"),
   params = NULL,
-  seed,
+  seed = NULL,
   ...
 )
 }
 \arguments{
 \item{object}{a \code{slcm} object}
 
+\item{nsim}{number of response data to simulate. Defaults to 100.}
+
+\item{nlevel}{number of categories for each manifest item.}
+
+\item{what}{objects to be printed among response, class, probs (params)}
+
 \item{params}{parameters to be designated}
 
 \item{seed}{random seed}
-
-\item{nsim}{number of response data to simulate. Defaults to 100.}
 }
 \description{
 Simulate \code{slcm} Object

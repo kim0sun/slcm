@@ -11,7 +11,7 @@
 #' @export
 regress <- function(object, ...) UseMethod("regress")
 
-#'@export
+#' @exportS3Method slcm::regress slcm
 regress.slcm <- function(
       object, formula, data = parent.frame(),
       imputation = c("modal", "prob"),
@@ -22,7 +22,7 @@ regress.slcm <- function(
 
    # Import
    labels <- all.vars(formula)
-   latent <- labels[labels %in% object$model$latent$label]
+   latent <- labels[labels %in% row.names(object$model$latent)]
    imputation <- match.arg(imputation)
    method <- match.arg(method)
 
@@ -137,7 +137,7 @@ regress.slcm <- function(
    return(res)
 }
 
-#'@export
+#' @exportS3Method base::print slcm
 print.reg.slcm <- function(
    x, digits = 3, odds.ratio = FALSE, wald = TRUE, pval = TRUE
 ) {
@@ -166,7 +166,7 @@ print.reg.slcm <- function(
 }
 
 
-#'@export
+#' @exportS3Method stats::confint slcm
 confint.reg.slcm <- function(
    object, parm, odds.ratio = FALSE, level = 0.95, ...
 ) {

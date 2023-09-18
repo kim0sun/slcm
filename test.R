@@ -31,10 +31,11 @@
       smoke3[3] ~ ysmoke2008 + msmoke2008 + dsmoke2008 + bsmoke2008,
       pf[3] ~ smoke1 + smoke2 + smoke3,
       constraints = c("smoke1", "smoke2", "smoke3")
-   )%>% estimate(dat1)
+   )
 }
-compare_boot(lcas, lcpa)
-
+debug(gof)
+gof(lcpa)
+class(lcpa)
 lcpa <- slcm(
    smoke[3] ~ ysmoke1998 + msmoke1998 + dsmoke1998 + bsmoke1998
 )

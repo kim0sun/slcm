@@ -20,7 +20,7 @@
 #' @export
 estimate <- function(object, ...) UseMethod("estimate")
 
-#' @export
+#' @exportS3Method slcm::estimate slcm
 estimate.slcm <- function(
       object, data, formula,
       method = c("em", "hybrid", "nlm"),

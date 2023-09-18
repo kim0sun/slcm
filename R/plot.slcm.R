@@ -1,4 +1,4 @@
-#' @export
+#' @exportS3Method base::plot slcm
 plot.slcm <- function(x, abbreviation = FALSE, dir = "TD",
                         equal_rank = NULL, font = "Helvetica", ...) {
    latent <- x$model$latent
