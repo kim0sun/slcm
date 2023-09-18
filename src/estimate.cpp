@@ -18,10 +18,11 @@ List em_est(
       IntegerVector nc_rho, IntegerVector nr_rho,
       int max_iter, double tol, bool verbose, int newiter
 ) {
+   List res;
    int *_y_;
    NumericVector par = clone(par_origin);
    NumericVector ss(par.length());
-   NumericVector denom(par.length());
+   NumericVector denom(npi + sum(nl_tau) + sum(nc_rho));
 
    std::vector<double*> _pi_(npi);
    std::vector<double*> _tau_(ntau);
@@ -75,7 +76,7 @@ List em_est(
       _tmp_ += nvar[v];
    }
 
-   NumericMatrix ll(nobs, npi);
+   NumericVector ll(nobs * npi);
    double *_tmp1_ = ll.begin();
    for (int r = 0; r < npi; r ++) {
       _ll_[r] = _tmp1_;
@@ -117,12 +118,15 @@ List em_est(
       // ss to parameter
       if (iter > 0) {
          _fix0_ = fix0.begin();
+         for (int r = 0; r < npi; r ++) {
+            updatePi(_pi_[r], _pi_ss_[r], _pi_d_[r], nc_pi[r]);
+            _fix0_ += nc_pi[r];
+         }
          for (int d = 0; d < ntau; d ++) {
             updateTau(_tau_[d], _tau_ss_[d], _tau_d_[d],
                       nk_tau[d], nl_tau[d], _fix0_);
             _fix0_ += nk_tau[d] * nl_tau[d];
          }
-
          for (int v = 0; v < nrho; v ++) {
             updateRho(_rho_[v], _rho_ss_[v], _rho_d_[v], nobs,
                       nc_rho[v], nvar[v], _nlev_[v], _fix0_);
@@ -170,7 +174,7 @@ List em_est(
       denom.fill(R_NegInf);
       // pi
       for (int r = 0; r < npi; r ++) {
-         updatePi(_pi_[r], _post_[rt[r]], nobs, nc_pi[r]);
+         cumPi(_pi_ss_[r], _pi_d_[r], _post_[rt[r]], nobs, nc_pi[r]);
       }
       // tau
       for (int d = 0; d < nrl; d ++) {
@@ -184,10 +188,8 @@ List em_est(
                 ncl[v], _post_[u], _rho_[w]);
          _y_ += nobs * nvar[w];
       }
-
       currll = 0;
       currll = sum(ll);
-
 
       if (lastll == R_NegInf) dll = R_PosInf;
       else dll = currll - lastll;
@@ -209,6 +211,10 @@ List em_est(
 
    // Final estimates
    _fix0_ = fix0.begin();
+   for (int r = 0; r < npi; r ++) {
+      updatePi(_pi_[r], _pi_ss_[r], _pi_d_[r], nc_pi[r]);
+      _fix0_ += nc_pi[r];
+   }
    for (int d = 0; d < ntau; d ++) {
       updateTau(_tau_[d], _tau_ss_[d], _tau_d_[d],
                 nk_tau[d], nl_tau[d], _fix0_);
@@ -220,12 +226,9 @@ List em_est(
       _fix0_ += nc_rho[v] * nr_rho[v];
    }
 
-
-   List res;
    res["param"] = par;
    res["converged"] = dll < tol;
    res["niter"] = iter;
-
    return res;
 }
 
