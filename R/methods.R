@@ -48,7 +48,7 @@ print.slcm <- function(x, ...) {
 
 #' @export
 summary.slcm = function(
-   object, ...
+      object, ...
 ) {
    estimated <- inherits(object, "estimated")
    cat("Structural Latent Class Model\n")
@@ -57,6 +57,7 @@ summary.slcm = function(
    lt <- object$model$latent
    mr <- object$model$measure
    st <- object$model$struct
+   tr <- object$model$tree
 
    nvar <- length(setdiff(tr$child, tr$parent))
    nlv <- nrow(lt)
@@ -153,7 +154,7 @@ summary.slcm = function(
            "     P(>Chi)",
            "   Likelihood Ratio (G-squared)",
            "     P(>Chi)"
-           ), ""
+         ), ""
       )
       print(round(mat, 3), na.print = "")
    }
@@ -163,10 +164,10 @@ summary.slcm = function(
 param <- function(object, ...) UseMethod("param")
 #' @export
 param.slcm <- function(
-   object, what = c("pi", "tau", "rho"),
-   type = c("probs", "logit"),
-   digits = max(3L, getOption("digits") - 3L),
-   index = FALSE, ...
+      object, what = c("pi", "tau", "rho"),
+      type = c("probs", "logit"),
+      digits = max(3L, getOption("digits") - 3L),
+      index = FALSE, ...
 ) {
    if (!inherits(object, "estimated")) return(NA)
    what <- match.arg(what, several.ok = TRUE)
@@ -193,9 +194,9 @@ param.slcm <- function(
 logLik.slcm <- function(object, ...) {
    res <- if (inherits(object, "estimated"))
       structure(sum(object$loglikelihood),
-      df = object$arg$df,
-      nobs = object$arg$nobs
-   ) else NA
+                df = object$arg$df,
+                nobs = object$arg$nobs
+      ) else NA
 
    class(res) <- "logLik"
    res
@@ -226,10 +227,10 @@ vcov.slcm <- function(object, type = c("probs", "logit")) {
 se <- function(object, ...) UseMethod("se")
 #' @export
 se.slcm <- function(
-   object, what = c("pi", "tau", "rho"),
-   type = c("probs", "logit"),
-   digits = max(3L, getOption("digits") - 3L),
-   index = FALSE, ...
+      object, what = c("pi", "tau", "rho"),
+      type = c("probs", "logit"),
+      digits = max(3L, getOption("digits") - 3L),
+      index = FALSE, ...
 ) {
    if (!inherits(object, "estimated")) return(NA)
    what <- match.arg(what, several.ok = TRUE)
@@ -265,8 +266,8 @@ reorder.slcm = function(x, what, order, ...) {
 
 #' @export
 gof <- function(
-   object, ...,  test = c("none", "chisq", "boot"), nboot = 100,
-   maxiter = 100, tol = 1e-6, verbose = FALSE
+      object, ...,  test = c("none", "chisq", "boot"), nboot = 100,
+      maxiter = 100, tol = 1e-6, verbose = FALSE
 ) {
    cl <- match.call(expand.dots = FALSE)
    mn <- sapply(c(cl[["object"]], cl[["..."]]), deparse)
@@ -298,6 +299,7 @@ gof <- function(
       for (i in seq_len(nmodel)) {
          obj <- objects[[i]]
          lt <- obj$model$latent
+         mr <- obj$model$measure
          arg <- obj$arg
          par <- unlist(obj$par)
          gb <- numeric(nboot)
@@ -333,7 +335,6 @@ gof <- function(
                arg$nc, arg$nk, arg$nl, arg$ncl,
                arg$nc_pi, arg$nk_tau, arg$nl_tau, arg$nc_rho, arg$nr_rho
             )
-            freq <- attr(mf, "freq")
             gb[b] <- attr(mf, "loglik") - sum(etc$ll)
          }
          if (verbose) cat("\n")
@@ -348,11 +349,15 @@ gof <- function(
 
 
 #' @export
-compare_boot <- function(
-   model1, model2, nboot = 100,
-   maxiter = 500, tol = 1e-5, verbose = FALSE
+compare <- function(
+      model1, model2, test = c("chisq", "boot"),
+      nboot = 100, maxiter = 500, tol = 1e-5,
+      verbose = FALSE
 ) {
    models <- list(model1, model2)
+   cl <- match.call()
+   test <- match.arg(test)
+   name <- c(cl[["model1"]], cl[["model2"]])
    if (any(!sapply(models, inherits, "estimated")))
       stop("both model should be estimated")
    mf1 <- model1$mf
@@ -363,66 +368,85 @@ compare_boot <- function(
       stop("datasets used for models are different")
 
    df <- sapply(models, function(x) x$arg$df)
-   h0 <- models[[which.min(df)]]
-   h1 <- models[[which.max(df)]]
+   models <- models[order(df)]
+   h0 <- models[[1]]; h1 <- models[[2]]
+   cat("Model H0:", deparse(name[[which.min(df)]]),
+       "\nModel H1:", deparse(name[[which.max(df)]]), "\n\n")
+
+   aic <- sapply(models, AIC)
+   bic <- sapply(models, BIC)
+   ll <- sapply(models, logLik)
+   resdf <- diff(df)
 
    gsq <- logLik(h1) - logLik(h0)
-   gb <- numeric(nboot)
-   if (verbose) cat("START Bootstrap Sampling. \n")
-   blank <- rep(" ", nchar(nboot))
-   for (b in seq_len(nboot)) {
-      if (verbose) cat("\r", b, "/", nboot, blank, sep = "")
-      arg0 <- h0$arg
-      sim <- simModel(
-         arg0$nobs, arg0$nvar, arg0$nlev, h0$par,
-         arg0$nlv, arg0$nrl, arg0$nlf, arg0$npi, arg0$ntau, arg0$nrho,
-         arg0$ul, arg0$vl, arg0$lf, arg0$rt, arg0$eqrl, arg0$eqlf,
-         arg0$nc, arg0$nk, arg0$nl, arg0$ncl,
-         arg0$nc_pi, arg0$nk_tau, arg0$nl_tau, arg0$nc_rho, arg0$nr_rho
-      )
-      y <- data.frame(do.call(cbind, sim$y))
-      colnames(y) <- unlist(h0$model$measure[["indicator"]])
-      y[] <- lapply(names(y), function(x) {
-         res <- factor(y[[x]])
-         levels(res) <- attr(h0$mf, "levels")[[x]]
-         res
-      })
-      mf0 <- proc_data(y, h0$model)
-      mf1 <- proc_data(y, h1$model)
+   tab <- cbind(df, ll, aic, bic, c(NA, gsq), c(NA, resdf))
+   rownames(tab) <- unlist(name[order(df)])
+   dt <- data.frame(tab)
+   names(dt) <- c("Df", "logLik", "AIC", "BIC", "Gsq", "Res. Df")
 
-      con <- slcmControl()
-      con$verbose <- FALSE
-      con$em.iterlim <- maxiter; con$nlm.iterlim <- maxiter
-      con$em.tol <- tol; con$nlm.tol <- tol
+   if (test == "chisq") {
+      dt$`Pr(>Chi)` <- c(NA, pchisq(gsq, resdf, lower.tail = FALSE))
+   } else if (test == "boot") {
+      gb <- numeric(nboot)
+      if (verbose) cat("START Bootstrap Sampling. \n")
+      blank <- rep(" ", nchar(nboot))
+      for (b in seq_len(nboot)) {
+         if (verbose) cat("\r", b, "/", nboot, blank, sep = "")
+         arg0 <- h0$arg
+         sim <- simModel(
+            arg0$nobs, arg0$nvar, arg0$nlev, h0$par,
+            arg0$nlv, arg0$nrl, arg0$nlf, arg0$npi, arg0$ntau, arg0$nrho,
+            arg0$ul, arg0$vl, arg0$lf, arg0$rt, arg0$eqrl, arg0$eqlf,
+            arg0$nc, arg0$nk, arg0$nl, arg0$ncl,
+            arg0$nc_pi, arg0$nk_tau, arg0$nl_tau, arg0$nc_rho, arg0$nr_rho
+         )
+         y <- data.frame(do.call(cbind, sim$y))
+         colnames(y) <- unlist(h0$model$measure[["indicator"]])
+         y[] <- lapply(names(y), function(x) {
+            res <- factor(y[[x]])
+            levels(res) <- attr(h0$mf, "levels")[[x]]
+            res
+         })
+         mf0 <- proc_data(y, h0$model)
+         mf1 <- proc_data(y, h1$model)
 
-      arg1 <- h1$arg
-      est0 <- estModel(h0$method, con, h0$par, mf0, arg0)
-      est1 <- estModel(h1$method, con, h1$par, mf1, arg1)
-      etc0 <- calcModel(
-         attr(mf0, "y"), arg0$nobs, arg0$nvar, unlist(arg0$nlev),
-         est0$par, arg0$fix0, arg0$ref - 1, arg0$nlv, arg0$nrl, arg0$nlf,
-         arg0$npi, arg0$ntau, arg0$nrho, arg0$ul, arg0$vl,
-         arg0$lf, arg0$tr, arg0$rt, arg0$eqrl, arg0$eqlf,
-         arg0$nc, arg0$nk, arg0$nl, arg0$ncl,
-         arg0$nc_pi, arg0$nk_tau, arg0$nl_tau, arg0$nc_rho, arg0$nr_rho
-      )
-      etc1 <- calcModel(
-         attr(mf1, "y"), arg1$nobs, arg1$nvar, unlist(arg1$nlev),
-         est1$par, arg1$fix0, arg1$ref - 1, arg1$nlv, arg1$nrl, arg1$nlf,
-         arg1$npi, arg1$ntau, arg1$nrho, arg1$ul, arg1$vl,
-         arg1$lf, arg1$tr, arg1$rt, arg1$eqrl, arg1$eqlf,
-         arg1$nc, arg1$nk, arg1$nl, arg1$ncl,
-         arg1$nc_pi, arg1$nk_tau, arg1$nl_tau, arg1$nc_rho, arg1$nr_rho
-      )
-      gb[b] <- sum(etc1$ll) - sum(etc0$ll)
+         con <- slcmControl()
+         con$verbose <- FALSE
+         con$em.iterlim <- maxiter; con$nlm.iterlim <- maxiter
+         con$em.tol <- tol; con$nlm.tol <- tol
+
+         arg1 <- h1$arg
+         est0 <- estModel(h0$method, con, h0$par, mf0, arg0)
+         est1 <- estModel(h1$method, con, h1$par, mf1, arg1)
+         etc0 <- calcModel(
+            attr(mf0, "y"), arg0$nobs, arg0$nvar, unlist(arg0$nlev),
+            est0$par, arg0$fix0, arg0$ref - 1, arg0$nlv, arg0$nrl, arg0$nlf,
+            arg0$npi, arg0$ntau, arg0$nrho, arg0$ul, arg0$vl,
+            arg0$lf, arg0$tr, arg0$rt, arg0$eqrl, arg0$eqlf,
+            arg0$nc, arg0$nk, arg0$nl, arg0$ncl,
+            arg0$nc_pi, arg0$nk_tau, arg0$nl_tau, arg0$nc_rho, arg0$nr_rho
+         )
+         etc1 <- calcModel(
+            attr(mf1, "y"), arg1$nobs, arg1$nvar, unlist(arg1$nlev),
+            est1$par, arg1$fix0, arg1$ref - 1, arg1$nlv, arg1$nrl, arg1$nlf,
+            arg1$npi, arg1$ntau, arg1$nrho, arg1$ul, arg1$vl,
+            arg1$lf, arg1$tr, arg1$rt, arg1$eqrl, arg1$eqlf,
+            arg1$nc, arg1$nk, arg1$nl, arg1$ncl,
+            arg1$nc_pi, arg1$nk_tau, arg1$nl_tau, arg1$nc_rho, arg1$nr_rho
+         )
+         gb[b] <- sum(etc1$ll) - sum(etc0$ll)
+      }
+      dt$`Pr(Boot)` <- c(NA, mean(gb >= gsq))
    }
-   mean(gb >= gsq)
+
+   structure(dt, heading = "Analysis of Relative Model Fit\n",
+             class = c("anova", "data.frame"))
 }
 
 
 #' @export
 predict.slcm <- function(
-   object, newdata, label, type = c("class", "posterior"), ...
+      object, newdata, label, type = c("class", "posterior"), ...
 ) {
    type <- match.arg(type)
    if (!inherits(object, "estimated")) stop("Latent variable model should be estimated.")
@@ -478,7 +502,7 @@ confint.slcm <- function(
    vcov <- vcov(object, "logit")
    se <-
 
-   lower <- (1 - level) / 2
+      lower <- (1 - level) / 2
    upper <- 1 - lower
    cn <- format.pc(c(lower, upper), 3)
 

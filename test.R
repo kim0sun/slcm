@@ -14,11 +14,16 @@
       dmari2008 = mmari2008 >= 10, mmari2008 = mmari2008 > 0, smari2008 = smari2008 > 0
    ) %>% mutate_all(as.numeric)
 
-   debug(slcm)
-   lcas2 <- slcm(
+   lcas <- slcm(
       smoke1[3] ~ ysmoke1998 + msmoke1998 + dsmoke1998 + bsmoke1998,
       smoke2[3] ~ ysmoke2003 + msmoke2003 + dsmoke2003 + bsmoke2003,
       smoke3[3] ~ ysmoke2008 + msmoke2008 + dsmoke2008 + bsmoke2008
+   ) %>% estimate(dat1)
+   lcas2 <- slcm(
+      smoke1[3] ~ ysmoke1998 + msmoke1998 + dsmoke1998 + bsmoke1998,
+      smoke2[3] ~ ysmoke2003 + msmoke2003 + dsmoke2003 + bsmoke2003,
+      smoke3[3] ~ ysmoke2008 + msmoke2008 + dsmoke2008 + bsmoke2008,
+      constraints = c("smoke1", "smoke2", "smoke3")
    ) %>% estimate(dat1)
    lcpa <- slcm(
       smoke1[3] ~ ysmoke1998 + msmoke1998 + dsmoke1998 + bsmoke1998,
