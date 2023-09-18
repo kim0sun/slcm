@@ -2,6 +2,21 @@
 #include "auxiliary.h"
 using namespace Rcpp;
 
+void cumPi(
+   double *numer, double *denom, double *post,
+   int nobs, int nclass
+) {
+   for (int i = 0; i < nobs; i ++) {
+      for (int k = 0; k < nclass; k ++) {
+         numer[k] = log_add_exp(numer[k], post[k]);
+      }
+      post += nclass;
+   }
+   for (int k = 0; k < nclass; k ++) {
+      *denom = log_add_exp(*denom, numer[k]);
+   }
+}
+
 void cumTau(
       double *numer, double *denom, double *joint,
       int nobs, int nk, int nl
@@ -46,17 +61,10 @@ void cumRho(
 
 
 void updatePi(
-      double *pi, double *post, int nobs, int nclass
+   double *pi, double *numer, double *denom, int nclass
 ) {
-   NumericVector npi(nclass, R_NegInf);
-   for (int i = 0; i < nobs; i ++) {
-      for (int k = 0; k < nclass; k ++) {
-         npi[k] = log_add_exp(npi[k], post[k]);
-      }
-      post += nclass;
-   }
    for (int k = 0; k < nclass; k ++)
-      pi[k] = npi[k] - log_sum_exp(npi);
+      pi[k] = numer[k] - *denom;
 }
 
 
