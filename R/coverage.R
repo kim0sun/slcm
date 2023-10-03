@@ -1,4 +1,4 @@
-#' Coverage
+#' Coverage Probabilities for Parameter Estimates for `slcm` model
 #'
 #' @param object a \code{slcm} object
 #' @param nsim number of simulation sample

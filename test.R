@@ -80,6 +80,30 @@ jlcpa <- slcm(
    )
 ) %>% estimate(dat1)
 
+jlcpa <- slcm(
+   smoke1[3] ~ ysmoke1998 + msmoke1998 + dsmoke1998 + bsmoke1998,
+   drink1[3] ~ ydrink1998 + mdrink1998 + ddrink1998 + bdrink1998,
+   drink2[3] ~ ydrink2003 + mdrink2003 + ddrink2003 + bdrink2003,
+   smoke2[3] ~ ysmoke2003 + msmoke2003 + dsmoke2003 + bsmoke2003,
+   mari1[3] ~ ymari1998 + mmari1998 + dmari1998 + smari1998,
+   mari2[3] ~ ymari2003 + mmari2003 + dmari2003 + smari2003,
+   drink3[3] ~ ydrink2008 + mdrink2008 + ddrink2008 + bdrink2008,
+   smoke3[3] ~ ysmoke2008 + msmoke2008 + dsmoke2008 + bsmoke2008,
+   mari3[3] ~ ymari2008 + mmari2008 + dmari2008 + smari2008,
+   jc1[5] ~ smoke1 + drink1 + mari1,
+   jc2[5] ~ smoke2 + drink2 + mari2,
+   jc3[5] ~ smoke3 + drink3 + mari3,
+   pf[4] ~ jc1 + jc2 + jc3,
+   constraints = list(
+      c("smoke1", "smoke2", "smoke3"),
+      c("drink1", "drink2", "drink3"),
+      c("mari1", "mari2", "mari3"),
+      c("jc1 ~ smoke1", "jc2 ~ smoke2", "jc3 ~ smoke3"),
+      c("jc1 ~ drink1", "jc2 ~ drink2", "jc3 ~ drink3"),
+      c("jc1 ~ mari1", "jc2 ~ mari2", "jc3 ~ mari3")
+   )
+) %>% estimate(dat1)
+plot(lcas, abbreviation = TRUE)
 object <- jlta
 summary(jlta)
 jlta <- slcm(

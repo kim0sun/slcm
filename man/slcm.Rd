@@ -4,18 +4,44 @@
 \alias{slcm}
 \title{Construct structural latent class model}
 \usage{
-slcm(x = NULL, ..., constraints = NULL)
+slcm(formula = NULL, ..., constraints = NULL)
 }
 \arguments{
+\item{formula}{a formula for specifying latent structure. The details of model specification are given under 'Details'.}
+
 \item{...}{additional formulae of the model}
 
-\item{constraints}{a list containing constraints of the measurement invariance.}
-
-\item{formula}{a formula for specifying latent structure. The details of model specification are below.}
+\item{constraints}{a list containing constraints for the measurement invariance assumption. The details of posing constraints are given under 'Details'}
 }
 \description{
 Function for constructing multivariate latent class model structure
 }
 \details{
-formula
+\enumerate{
+\item Define latent class variable with manifest indicators
+\preformatted{LC1[k] ~ x1 + x2 + x3
+LC2[k] ~ y1 + y2 + y3
+LC3[k] ~ z1 + z2 + z3}
+\item Relate latent class variables each other
+\preformatted{LC1 ~ LC2}
+\item Define higher-level latent class variable
+\preformatted{P[k] ~ LC1 + LC2 + LC3}
+\item Measurement invariance for measurement model
+\preformatted{c("LC1", "LC2", "LC3")}
+\item Measurement invariance for structural model
+\preformatted{c("P ~ LC1", "P -> LC2")}
+}
+}
+\examples{
+# Standard LCA
+slcm(L[3] ~ y1 + y2 + y3)
+# Latent transition analysis
+slcm(L1[3] ~ y11 + y21 + y31, L2[3] ~ y12 + y22 + y32,
+     L1 ~ L2)
+# LTA with measurement assumption
+slcm(L1[3] ~ y11 + y21 + y31, L2[3] ~ y12 + y22 + y32,
+     L1 ~ L2, constraints = c("L1", "L2"))
+# Joint latent class analysis
+slcm(LX[3] ~ x1 + x2 + x3, LY[3] ~ y1 + y2 + y3,
+     LZ[3] ~ z1 + z2 + z3, JL ~ LX + LY + LZ)
 }

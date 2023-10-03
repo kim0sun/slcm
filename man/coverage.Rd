@@ -2,7 +2,7 @@
 % Please edit documentation in R/coverage.R
 \name{coverage}
 \alias{coverage}
-\title{Coverage}
+\title{Coverage Probabilities for Parameter Estimates for \code{slcm} model}
 \usage{
 coverage(object, nsim = 100, parm, level = 0.95, verbose = TRUE, control, ...)
 }
@@ -22,5 +22,5 @@ coverage(object, nsim = 100, parm, level = 0.95, verbose = TRUE, control, ...)
 \item{nobs}{number of observations for}
 }
 \description{
-Coverage
+Coverage Probabilities for Parameter Estimates for \code{slcm} model
 }

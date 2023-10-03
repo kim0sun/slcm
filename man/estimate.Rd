@@ -9,7 +9,7 @@ estimate(object, ...)
 
 \method{estimate}{slcm}(object, data,
     method = c("em", "hybrid", "nlm"),
-    restriction = NULL,
+    fix2zero = NULL,
     control = slcmControl(), ...)
 }
 \arguments{
@@ -17,15 +17,11 @@ estimate(object, ...)
 
 \item{data}{a \code{data.frame} object which contains observed categorical variables beloning to the latent structure.}
 
-\item{formula}{a \code{formula} object introducing exogenous covariates.}
-
-\item{nrep}{number of trial}
-
 \item{method}{estimating method for slcm parameters.}
 
-\item{restriction}{a \code{list} of parameters to be restricted to zero.}
+\item{fix2zero}{a \code{vector} of parameters to be restricted to zero. The details of restriction is given under 'Details'}
 
-\item{control}{slcm control.}
+\item{control}{a \code{list} of control for the estimation procedure to change default values in \link{slcmControl}.}
 }
 \description{
 Estimation for Parameters of \code{slcm} Object

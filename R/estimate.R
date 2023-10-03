@@ -1,21 +1,18 @@
-#' Estimation for Parameters of \code{slcm} Object
+#' Estimation for Parameters of `slcm` Object
 #' @aliases estimate estimate.slcm
 #' @usage
-#'
 #' estimate(object, ...)
 #'
 #' \method{estimate}{slcm}(object, data,
 #'     method = c("em", "hybrid", "nlm"),
-#'     restriction = NULL,
+#'     fix2zero = NULL,
 #'     control = slcmControl(), ...)
 #'
-#' @param object a \code{slcm} object which defines latent structure to be estimated.
-#' @param data a \code{data.frame} object which contains observed categorical variables beloning to the latent structure.
-#' @param formula a \code{formula} object introducing exogenous covariates.
-#' @param nrep number of trial
+#' @param object a `slcm` object which defines latent structure to be estimated.
+#' @param data a `data.frame` object which contains observed categorical variables beloning to the latent structure.
 #' @param method estimating method for slcm parameters.
-#' @param restriction a \code{list} of parameters to be restricted to zero.
-#' @param control slcm control.
+#' @param fix2zero a `vector` of parameters to be restricted to zero. The details of restriction is given under 'Details'
+#' @param control a `list` of control for the estimation procedure to change default values in [slcmControl].
 #'
 #' @export
 estimate <- function(object, ...) UseMethod("estimate")
