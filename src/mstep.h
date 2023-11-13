@@ -1,8 +1,6 @@
 #ifndef MSTEP_H
 #define MSTEP_H
 
-#include <Rcpp.h>
-
 // M-step
 void cumPi(double *numer, double *denom, double *post, int nobs, int nclass);
 void cumTau(

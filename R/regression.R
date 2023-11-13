@@ -1,12 +1,13 @@
-#' Regress Covariates on Latent Variables
+#' Regress Exogenous Variables on Latent Variables
 #'
-#' @param object a slcm object
-#' @param formula formula
-#' @param data data
-#' @param imputation imputation
-#' @param method method
+#' This function allows you to perform regression analysis to understand the impact of exogenous (external) variables on the latent class variables in the estimated slcm model. Logistic regression and three-step approach is used for this purpose.
 #'
-#' @return coefficients
+#' @param object an object of class `slcm` and `estimated`
+#' @param formula a formula defining the regression model. It should include both latent class variables from the estimated model and any exogenous (external) variables
+#' @param data an optional data frame containing the exogenous variables in interest.
+#' @param imputation imputation method for latent class variables.
+#' @param method bias-adjusting method for three-step approach
+#'
 #'
 #' @export
 regress <- function(object, ...) UseMethod("regress")
@@ -36,7 +37,10 @@ regress.slcm <- function(
       return(imputed)
    }
 
-   imputed <- lapply(object$posterior[latent], impute, imputation)
+   if (missing(data)) data <- object$mf
+   else data <- data.frame(object$mf, data)
+   imputed <- lapply(object$posterior$marginal[latent],
+                     impute, imputation)
    data <- data.frame(data, imputed)
    mf <- model.frame(formula, data)
 
@@ -74,7 +78,7 @@ regress.slcm <- function(
                  ref = nlevels(y), hessian = TRUE)
    } else {
       # bias_adjusted
-      p <- object$posterior[latent][rownames(mf), ]
+      p <- object$posterior$marginal[latent][rownames(mf), ]
       w <- switch(
          imputation,
          modal = lapply(p, apply, 1, function(x) x == max(x)),
@@ -137,9 +141,20 @@ regress.slcm <- function(
    return(res)
 }
 
-#' @exportS3Method base::print slcm
+
+#' @exportS3Method base::print reg.slcm
 print.reg.slcm <- function(
-   x, digits = 3, odds.ratio = FALSE, wald = TRUE, pval = TRUE
+      x, digits = 3, wald = TRUE, pval = TRUE
+) {
+   cat("Coefficients:")
+   print.default(format(x$coefficients, digits = digits),
+                 print.gap = 2L, quote = FALSE)
+   invisible(x)
+}
+
+#' @exportS3Method base::summary reg.slcm
+summary.reg.slcm <- function(
+   x, digits = 3, odds.ratio = FALSE, wald = TRUE
 ) {
    cat("Coefficients:")
    print.default(format(x$coefficients, digits = digits), print.gap = 2L,
@@ -166,7 +181,7 @@ print.reg.slcm <- function(
 }
 
 
-#' @exportS3Method stats::confint slcm
+#' @exportS3Method stats::confint reg.slcm
 confint.reg.slcm <- function(
    object, parm, odds.ratio = FALSE, level = 0.95, ...
 ) {

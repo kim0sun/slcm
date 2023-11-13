@@ -151,9 +151,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// calcfreq
-List calcfreq(IntegerVector mis, IntegerVector nrep, int nmis, IntegerVector freq, IntegerVector xobs, int nc, int N, double tol, int max_iter);
-RcppExport SEXP _slcm_calcfreq(SEXP misSEXP, SEXP nrepSEXP, SEXP nmisSEXP, SEXP freqSEXP, SEXP xobsSEXP, SEXP ncSEXP, SEXP NSEXP, SEXP tolSEXP, SEXP max_iterSEXP) {
+// calcfreq2
+List calcfreq2(IntegerVector mis, IntegerVector nrep, int nmis, IntegerVector freq, IntegerVector xobs, int nc, int N, double tol, int max_iter);
+RcppExport SEXP _slcm_calcfreq2(SEXP misSEXP, SEXP nrepSEXP, SEXP nmisSEXP, SEXP freqSEXP, SEXP xobsSEXP, SEXP ncSEXP, SEXP NSEXP, SEXP tolSEXP, SEXP max_iterSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -166,7 +166,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type N(NSEXP);
     Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
     Rcpp::traits::input_parameter< int >::type max_iter(max_iterSEXP);
-    rcpp_result_gen = Rcpp::wrap(calcfreq(mis, nrep, nmis, freq, xobs, nc, N, tol, max_iter));
+    rcpp_result_gen = Rcpp::wrap(calcfreq2(mis, nrep, nmis, freq, xobs, nc, N, tol, max_iter));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -212,7 +212,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_slcm_calcModel", (DL_FUNC) &_slcm_calcModel, 29},
     {"_slcm_em_est", (DL_FUNC) &_slcm_em_est, 32},
     {"_slcm_fll", (DL_FUNC) &_slcm_fll, 27},
-    {"_slcm_calcfreq", (DL_FUNC) &_slcm_calcfreq, 9},
+    {"_slcm_calcfreq2", (DL_FUNC) &_slcm_calcfreq2, 9},
     {"_slcm_simModel", (DL_FUNC) &_slcm_simModel, 25},
     {NULL, NULL, 0}
 };

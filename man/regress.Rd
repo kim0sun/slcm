@@ -2,24 +2,21 @@
 % Please edit documentation in R/regression.R
 \name{regress}
 \alias{regress}
-\title{Regress Covariates on Latent Variables}
+\title{Regress Exogenous Variables on Latent Variables}
 \usage{
 regress(object, ...)
 }
 \arguments{
-\item{object}{a slcm object}
+\item{object}{an object of class \code{slcm} and \code{estimated}}
 
-\item{formula}{formula}
+\item{formula}{a formula defining the regression model. It should include both latent class variables from the estimated model and any exogenous (external) variables}
 
-\item{data}{data}
+\item{data}{an optional data frame containing the exogenous variables in interest.}
 
-\item{imputation}{imputation}
+\item{imputation}{imputation method for latent class variables.}
 
-\item{method}{method}
-}
-\value{
-coefficients
+\item{method}{bias-adjusting method for three-step approach}
 }
 \description{
-Regress Covariates on Latent Variables
+This function allows you to perform regression analysis to understand the impact of exogenous (external) variables on the latent class variables in the estimated slcm model. Logistic regression and three-step approach is used for this purpose.
 }

@@ -2,7 +2,7 @@
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-List calcfreq(
+List calcfreq2(
       IntegerVector mis, IntegerVector nrep,
       int nmis, IntegerVector freq,
       IntegerVector xobs, int nc, int N,
@@ -16,16 +16,21 @@ List calcfreq(
 
    double diff = R_PosInf;
    int iter = 0;
-   while (diff > tol || iter < max_iter) {
+   while (diff > tol && iter < max_iter) {
       iter ++;
       loglik = 0;
-      for (int c = 0; c < nc; c ++) x[c] = xobs[c];
+      for (int c = 0; c < nc; c ++) {
+         x[c] = xobs[c];
+         if (theta[c] > 0)
+            loglik += x[c] * log(theta[c]);
+      }
       int *mis_ = (int*) mis_begin;
       for (int i = 0; i < nmis; i ++) {
          beta = 0;
          for (int j = 0; j < nrep[i]; j ++)
             beta += theta[mis_[j]];
-         loglik += freq[i] * log(beta);
+         if (beta > 0)
+            loglik += freq[i] * log(beta);
          for (int j = 0; j < nrep[i]; j ++)
             x[mis_[j]] += freq[i] * theta[mis_[j]] / beta;
          mis_ += nrep[i];

@@ -53,7 +53,7 @@ summary.slcm = function(
    estimated <- inherits(object, "estimated")
    cat("Structural Latent Class Model\n")
 
-   cat("Summary of model:\n")
+   cat("\nSummary of model:\n")
    lt <- object$model$latent
    mr <- object$model$measure
    st <- object$model$struct
@@ -78,8 +78,51 @@ summary.slcm = function(
    }
    print(mat)
 
+   cat("\nSummary of model structure\n")
+   cat("\n Latent variables (Root*):")
+   label <- row.names(lt)
+   label[lt$root] <- paste0(label[lt$root], "*")
+   mat <- rbind(label, lt$nclass)
+   dimnames(mat) <- list(c("  Label:", " nclass:"), rep("", ncol(mat)))
+   print(mat, quote = FALSE)
+
+   cat("\n Measurement model:")
+   mat <- mr[c("indicator", "constraint")]
+   mapping <- function(x) paste("-> {", sapply(x, paste, collapse = ", "), "}")
+   mat$indicator <- mapping(lapply(mat$indicator, function(x)
+      x[!(x %in% label)]))
+   mat$constraint <- paste("", mat$constraint)
+   mat <- as.matrix(mat)
+   colnames(mat) = rep("", ncol(mat))
+   rownames(mat) = paste0("  ", rownames(mat))
+   print(mat, quote = FALSE)
+
    if (nrow(st) > 0) {
-      cat("\nSummary of dependent structure:\n")
+      cat("\n Structural model:")
+      vars <- tapply(st$child, st$parent, paste, collapse = ", ")
+      vars <- vars[!is.na(vars)]
+      mat <- cbind("->", paste("{", vars, "}"))
+      dimnames(mat) = list(paste0("  ", names(vars)),  rep("", ncol(mat)))
+      print(mat, quote = FALSE)
+
+      cat("\n Dependency constraints:\n")
+      const <- st$constraint
+      parent <- split(st$parent, const)
+      child <- split(st$child, const)
+      mapping <- function(x, y) paste(x, "->", y)
+      maps <- mapply(mapping, parent, child, SIMPLIFY = FALSE)
+      mat <- matrix("", nrow = max(lengths(maps)), ncol = length(maps))
+      for (i in seq_len(length(maps))) {
+         mat[seq_len(length(maps[[i]])), i] = maps[[i]]
+      }
+      dimnames(mat) = list(rep(" ", nrow(mat)), names(
+
+         maps))
+      print(mat, quote = FALSE)
+   }
+
+   if (nrow(st) > 0) {
+      cat("\n Tree of structural model:")
       root <- st[st$rank == 1, c(1, 3)]
       names(root) <- c("root", "child1")
       node <- st[, c(1, 3)]
@@ -105,7 +148,7 @@ summary.slcm = function(
    }
 
    if (estimated) {
-      cat("\n\nSummary of manifest variables:\n")
+      cat("\nSummary of manifest variables:\n")
       freq <- lapply(object$mf, table)
       lst <- Map(function(x, y) paste0(x, ": ", y),
                  lapply(freq, names), freq)
@@ -116,32 +159,41 @@ summary.slcm = function(
       dimnames(mat) <- list(paste0(" ", names(freq)), c("", ""))
       print(mat, quote = FALSE, print.gap = 2)
 
-      cat("\n\nSummary of model fit:\n")
+      cat("\nSummary of model fit:\n")
       npar <- object$arg$df
       llik <- logLik(object)
       aic <- AIC(object)
       bic <- BIC(object)
 
-      uy <- attr(object$mf, "y_unique")
-      mf <- proc_data(uy, object$model, FALSE)
-      arg <- arguments(object$model, mf, object$fix2zero)
+      arg <- object$arg
+      mf <- object$mf
       ll <- calcModel(
-         attr(mf, "y"), arg$nobs, arg$nvar, unlist(arg$nlev),
-         object$par, arg$fix0, arg$ref - 1, arg$nlv, arg$nrl, arg$nlf,
+         attr(mf, "yu"), nrow(attr(mf, "y_unique")),
+         arg$nvar, unlist(arg$nlev), object$par, arg$fix0,
+         arg$ref - 1, arg$nlv, arg$nrl, arg$nlf,
          arg$npi, arg$ntau, arg$nrho, arg$ul, arg$vl,
          arg$lf, arg$tr, arg$rt, arg$eqrl, arg$eqlf,
          arg$nc, arg$nk, arg$nl, arg$ncl,
          arg$nc_pi, arg$nk_tau, arg$nl_tau, arg$nc_rho, arg$nr_rho
       )$ll
-      mfreq <- exp(rowSums(ll) + log(object$arg$nobs))
+      mfreq <- exp(rowSums(ll) + log(arg$nobs))
       dfreq <- attr(object$mf, "freq")
-      chisq <- sum((dfreq - mfreq)^2 / mfreq) + (nobs - sum(mfreq))
+      chisq <- sum((dfreq - mfreq)^2 / mfreq) +
+         (arg$nobs - sum(mfreq))
 
-      gsq <- attr(object$mf, "loglik") - logLik(object)
+      gsq <- 2 * (attr(object$mf, "loglik") - logLik(object))
       resdf <- attr(object$mf, "df") - npar
-      mat <- rbind(npar, llik, NA, aic, bic, NA, resdf,
-                   chisq, pchisq(chisq, resdf, lower.tail = FALSE),
-                   gsq, pchisq(gsq, resdf, lower.tail = FALSE))
+      sprintf("%.0f", npar)
+      mat <- rbind(sprintf("%.0f", npar),
+                   sprintf("%.3f", llik), NA,
+                   sprintf("%.3f", aic),
+                   sprintf("%.3f", bic), NA,
+                   sprintf("%.0f", resdf),
+                   sprintf("%.3f", chisq),
+                   sprintf("%.3f", pchisq(chisq, resdf, lower.tail = FALSE)),
+                   sprintf("%.3f", gsq),
+                   sprintf("%.3f", pchisq(gsq, resdf, lower.tail = FALSE)))
+      format(pchisq(gsq, resdf, lower.tail = FALSE), digits = 3)
       dimnames(mat) <- list(
          c(" Number of free parameters",
            " Log-likelihood",
@@ -156,38 +208,101 @@ summary.slcm = function(
            "     P(>Chi)"
          ), ""
       )
-      print(round(mat, 3), na.print = "")
+      print(mat, na.print = "", quote = FALSE, right = TRUE)
    }
 }
 
+#' Printing Estimated Parameters of `slcm` Object
+#'
+#' By passing `estimated` `slcm` object, the function prints estimated parameters of the slcm model.
+#'
+#' @aliases param param.slcm se se.slcm
+#'
+#' @usage
+#' param(object, ...)
+#'
+#' \method{param}{slcm}(
+#'    object, type = c("probs", "logit"),
+#'    se = FALSE, index = FALSE ..
+#' )
+#'
+#' @param object an object of class `slcm` and `estimated`.
+#' @param what specifies which parameter types to display. Valid options are `"pi"`, `"tau"`, and `"rho"`. `pi` represents membership probabilities of root variable, `tau` denotes conditional probabilities between latent class variables, and `rho` corresponds to item response probabilities for each measurement model. Multiple types can be chosen to display.
+#' @param type a character string indicating the format in which the estimated parameters should be returned. If set to `"probs"`, estimates are returned in probability form, while `"logit"` returns them in log-odds (logit) form. Default is `"probs"`.
+#' @param index a logical value. If `TRUE`, the indices of the estimated parameters are included in the output, enclosed in parentheses. If `FALSE`, they are omitted.
+#' @param digits an integer that sets the number of decimal places for rounding the output.
+#'
+#' @returns
+#' A list containing the specified estimated parameters (or corresponding standard errors for `se` function):
+#' \item{pi}{Membership probabilities of the root variable.}
+#' \item{tau}{Conditional probabilities between latent class variables, represented with uppercase alphabets for considering measurement invariance.}
+#' \item{rho}{Item response probabilities for each measurement model, represented with lowercase alphabets for considering measurement invariance.}
+#'
 #' @export
 param <- function(object, ...) UseMethod("param")
 #' @exportS3Method slcm::param slcm
 param.slcm <- function(
-      object, what = c("pi", "tau", "rho"),
-      type = c("probs", "logit"),
-      digits = max(3L, getOption("digits") - 3L),
-      index = FALSE, ...
+   object, type = c("probs", "logit"),
+   se = FALSE, index = FALSE, ...
 ) {
    if (!inherits(object, "estimated")) return(NA)
-   what <- match.arg(what, several.ok = TRUE)
    type <- match.arg(type)
 
-   est <- switch(
-      type,
-      probs = exp(object$par),
-      logit = object$logit
-   )
+   if (se) {
+      vcov <- vcov.slcm(object, type)
+      var <- diag(vcov)
+      est <- numeric(length(var))
+      est[var >= 0] <- sqrt(var[var >= 0])
+   } else {
+      est <- switch(
+         type,
+         probs = exp(object$par),
+         logit = object$logit,
+      )
+   }
 
-   idx <- seq_along(est)
    skeleton <- object$arg$skeleton$par
 
-   val <- sprintf(paste0(" %.", digits, "f"), est)
+   res <- relist(est, skeleton)
+   attr(res, "index") <- index
    if (index) {
-      ans <- relist(paste0(val, " (", idx, ")"), skeleton)
-   } else ans <- relist(val, skeleton)
+      attr(res, "idx") <- seq_along(est)
+   }
+   class(res) <- c("param.slcm", "list")
+   res
+}
 
-   noquote(ans[what], right = TRUE)
+#' @exportS3Method base::print param.slcm
+print.param.slcm <- function(
+   x, digits = max(3L, getOption("digits") - 3L), ...
+) {
+   class(x) <- "list"
+   index <- attr(x, "index")
+   val <- unlist(x)
+   val <- sprintf(paste0(" %.", digits, "f"), val)
+   if (index) {
+      idx <- attr(x, "idx")
+      ans <- relist(paste0(val, " (", idx, ")"), x)
+   } else ans <- relist(val, x)
+
+   cat("PI :\n")
+   for (i in names(ans[["pi"]])) {
+      cat(paste0("(", i, ")\n"))
+      print(ans[["pi"]][[i]], right = TRUE, quote = FALSE)
+   }
+   cat("\nTAU :\n")
+   for (i in names(ans[["tau"]])) {
+      cat(paste0("(", i, ")\n"))
+      print(ans[["tau"]][[i]], right = TRUE, quote = FALSE)
+      print(attr(x[["tau"]][[i]], "vars"), quote = FALSE)
+   }
+   cat("\nRHO :\n")
+   for (i in names(ans[["rho"]])) {
+      cat(paste0("(", i, ")\n"))
+      print(ans[["rho"]][[i]], right = TRUE, quote = FALSE)
+      cat("\n")
+      print(attr(x[["rho"]][[i]], "vars"), quote = FALSE)
+   }
 }
 
 #' @exportS3Method stats::logLik slcm
@@ -222,51 +337,38 @@ vcov.slcm <- function(object, type = c("probs", "logit")) {
    vcov
 }
 
-
-#' @export
-se <- function(object, ...) UseMethod("se")
-#' @method slcm::se slcm
-se.slcm <- function(
-      object, what = c("pi", "tau", "rho"),
-      type = c("probs", "logit"),
-      digits = max(3L, getOption("digits") - 3L),
-      index = FALSE, ...
-) {
-   if (!inherits(object, "estimated")) return(NA)
-   what <- match.arg(what, several.ok = TRUE)
-   type <- match.arg(type)
-
-   vcov <- vcov.slcm(object, type)
-   var <- diag(vcov)
-   se <- numeric(length(var))
-   se[var >= 0] <- sqrt(var[var >= 0])
-   idx <- seq_along(se)
-   skeleton <- object$arg$skeleton$par
-
-   val <- sprintf(paste0(" %.", digits, "f"), se)
-   if (index) {
-      ans <- relist(paste0(val, " (", idx, ")"), skeleton)
-   } else ans <- relist(val, skeleton)
-
-   noquote(ans[what], right = TRUE)
-}
-
-
-#' @exportS3Method stats::reorder slcm
-reorder.slcm = function(x, what, order, ...) {
-   latent <- x$model$latent
-   const <- x$model$constraint
-   leaf <- latent[latent$label == what, "leaf"]
-   if (leaf) {
-      idx <- const$eqlf[what]
-   } else {
-      idx <- const$eqlf[what]
-   }
-}
-
-
+#' Goodness of Fit Tests for Estimated `slcm` Model
+#'
+#' Provides AIC, BIC and deviance statistic (G-squared) for goodness of fit test for the fitted model. Absolute model fit can be tested with deviance statistics, if `test` argument is specified.
+#'
+#' @aliases gof gof.slcm
+#'
+#' @usage
+#' gof(object, ...)
+#'
+#' \method{gof}{slcm}(
+#'    object, ..., test = c("none", "chisq", "boot"), nboot = 100,
+#'    maxiter = 100, tol = 1e-6, verbose = FALSE
+#' )
+#'
+#' @param object an object of class `slcm` and `estimated`.
+#' @param ... additional objects of class `slcm` and `estimated`.
+#' @param test a character string specifying the type of test to be conducted. If "none", no test is conducted. If "chisq", a chi-squared test is conducted. If "boot", a bootstrap test is conducted.
+#' information on the bootstrap procedure.
+#' @param nboot an integer specifying the number of bootstrap rounds to be performed.
+#' @param maxiter an integer specifying maximum number of iterations allowed for the estimation process of each bootstrapping round.
+#' @param tol a numeric value setting tolerance for the convergence of each bootstrapping round.
+#' @param verbose a logical value indicating whether to print progress updates on the number of bootstrapping rounds completed.
+#'
+#' @returns
+#' A `data.frame` containing the number of parameters (Df), loglikelihood, AIC, BIC, G-squared statistics, and the residual degree of freedom for each object.
+#' Depending on the `test` argument, the p-value for the corresponding statistical test may also be included.
+#'
+#' @seealso \link[slcm]{compare}
+#'
 #' @export
 gof <- function(object, ...) UseMethod("gof")
+
 #' @exportS3Method slcm::gof slcm
 gof.slcm <- function(
    object, ...,  test = c("none", "chisq", "boot"), nboot = 100,
@@ -288,7 +390,7 @@ gof.slcm <- function(
    bic <- sapply(objects, BIC)
    ll <- sapply(objects, logLik)
    gsq <- sapply(objects, function(x)
-      attr(x$mf, "loglik") - logLik(x))
+      2 * (attr(x$mf, "loglik") - logLik(x)))
    resdf <- sapply(objects, function(x)
       attr(x$mf, "df") - x$arg$df)
 
@@ -329,7 +431,7 @@ gof.slcm <- function(
                levels(res) <- attr(obj$mf, "levels")[[x]]
                res
             })
-            mf <- proc_data(y, obj$model)
+            mf <- proc_data(y, obj$model, obj$control$na.rm)
             con <- obj$control
             con$verbose <- FALSE
             con$em.iterlim <- maxiter; con$nlm.iterlim <- maxiter
@@ -343,7 +445,7 @@ gof.slcm <- function(
                arg$nc, arg$nk, arg$nl, arg$ncl,
                arg$nc_pi, arg$nk_tau, arg$nl_tau, arg$nc_rho, arg$nr_rho
             )
-            gb[b] <- attr(mf, "loglik") - sum(etc$ll)
+            gb[b] <- 2 * (attr(mf, "loglik") - sum(etc$ll))
          }
          if (verbose) cat("\n")
          pb[i] <- mean(gb >= gsq[i])
@@ -355,7 +457,10 @@ gof.slcm <- function(
              class = c("anova", "data.frame"))
 }
 
-
+#' Comparing Two Estimated `slcm` Models
+#'
+#'
+#'
 #' @export
 compare <- function(
    model1, model2, test = c("chisq", "boot"),
@@ -386,7 +491,7 @@ compare <- function(
    ll <- sapply(models, logLik)
    resdf <- diff(df)
 
-   gsq <- logLik(h1) - logLik(h0)
+   gsq <- 2 * (logLik(h1) - logLik(h0))
    tab <- cbind(df, ll, aic, bic, c(NA, gsq), c(NA, resdf))
    rownames(tab) <- unlist(name[order(df)])
    dt <- data.frame(tab)
@@ -415,8 +520,8 @@ compare <- function(
             levels(res) <- attr(h0$mf, "levels")[[x]]
             res
          })
-         mf0 <- proc_data(y, h0$model)
-         mf1 <- proc_data(y, h1$model)
+         mf0 <- proc_data(y, h0$model, h0$control$na.rm)
+         mf1 <- proc_data(y, h1$model, h1$control$na.rm)
 
          con <- slcmControl()
          con$verbose <- FALSE
@@ -442,7 +547,7 @@ compare <- function(
             arg1$nc, arg1$nk, arg1$nl, arg1$ncl,
             arg1$nc_pi, arg1$nk_tau, arg1$nl_tau, arg1$nc_rho, arg1$nr_rho
          )
-         gb[b] <- sum(etc1$ll) - sum(etc0$ll)
+         gb[b] <- 2 * (sum(etc1$ll) - sum(etc0$ll))
       }
       dt$`Pr(Boot)` <- c(NA, mean(gb >= gsq))
    }
@@ -453,7 +558,7 @@ compare <- function(
 
 #' @exportS3Method stats::predict slcm
 predict.slcm <- function(
-      object, newdata, label, type = c("class", "posterior"), ...
+   object, newdata, label, type = c("class", "posterior"), ...
 ) {
    type <- match.arg(type)
    if (!inherits(object, "estimated")) stop("Latent variable model should be estimated.")
@@ -491,19 +596,18 @@ predict.slcm <- function(
 #'
 #' Computes confidence intervals for one or more parameters of fitted model. Package \pkg{slcm} adds methods for \code{slcm} fits.
 #'
-#' @param object a fitted slcm object.
-#' @param parm a specification of which parameters are to be given confidence intervals, either a vector of numbers or a vector of names. If missing, all parameters are considered.
-#' @param level the confidence level required.
-#' @param method calculating method for standard error
-#' @param out the type of output
+#' @param object an object of class `slcm` and `estimated`.
+#' @param level level a numeric value representing the desired confidence level for the intervals. Default is 0.95
+#' @param type a character string specifying the format in which the results should be returned. Options are `"probs"` for probability format and `"logit"` for log-odds (logit) format. The default is `"probs"`.
+#'
 #'
 #' @exportS3Method stats::confint slcm
 confint.slcm <- function(
-      object, parm = c("pi", "tau", "rho"), level = 0.95,
-      method = c("asymp", "logit"), out = c("param", "logit")
+   object, level = 0.95,
+   type = c("param", "logit"), ...
 ) {
-   parm <- match.arg(parm, several.ok = TRUE)
-   out <- match.arg(out)
+   if (!inherits(object, "estimated")) return(NA)
+   type <- match.arg(type)
 
    logit <- object$logit
    vcov <- vcov(object, "logit")
@@ -520,8 +624,8 @@ confint.slcm <- function(
    ci_par <- ci_logit
    ci_par[] <- exp(unlist(apply(ci_logit, 2, tapply, object$arg$id, norm2)))
 
-   id <- unlist(object$arg$par_index[parm])
-   ci <- switch(out, param = ci_par[id,], logit = ci_logit[id,])
+   id <- unlist(object$arg$par_index)
+   ci <- switch(type, param = ci_par[id,], logit = ci_logit[id,])
    colnames(ci) <- cn
    ci
 }

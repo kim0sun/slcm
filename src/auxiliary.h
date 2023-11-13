@@ -1,7 +1,6 @@
 #ifndef AUXILIARY_H
 #define AUXILIARY_H
 
-#include <Rcpp.h>
 int sample1(int n, double *prob);
 double log_add_exp(double x, double y);
 double log_sum_exp(Rcpp::NumericVector x);

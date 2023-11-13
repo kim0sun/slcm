@@ -26,9 +26,8 @@ proc_tree <- function(nc, iv) {
       tree$leaf[i] <- !(tree$child[i] %in% tree$parent)
    }
 
-   parent <- unique(tree$parent)
+   label <- unique(tree$parent)
    child <- unique(tree$child)
-   label <- union(intersect(child, parent), parent)
    leaf <- tapply(tree$leaf, tree$parent, any)
    rank <- tapply(tree$rank, tree$parent, max)
    root <- sapply(label, "%in%", tree$root)

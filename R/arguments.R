@@ -80,8 +80,8 @@ arguments <- function(model, mf, fix2zero) {
       res <- matrix(nrow = nk_tau[x], ncol = nl_tau[x])
       dimnames(res) <- list(child = seq_len(nk_tau[x]),
                             parent = seq_len(nl_tau[x]))
-      rl <- rel[[x]][,1:3]
-      row.names(rl) <- NULL
+      rl <- t(rel[[x]][, c(1, 3)])
+      colnames(rl) <- rep("", ncol(rl))
       attr(res, "vars") <- rl
       res
    })
@@ -131,7 +131,7 @@ arguments <- function(model, mf, fix2zero) {
       ref[cond] <- ref[cond] - 1
       ref_idx[cond] <- ref_idx[cond] - 1
    }
-   df <- length(id) - length(ref)
+   df <- sum(non0) - length(non0)
 
    list(nlv = nlv, nrl = nrl, nlf = nlf,
         npi = npi, ntau = ntau, nrho = nrho,
@@ -149,106 +149,4 @@ arguments <- function(model, mf, fix2zero) {
                         score = skeleton_score,
                         post = skeleton_post,
                         joint = skeleton_joint))
-}
-
-
-arguments_nmf <- function(model, nobs, nlevel) {
-   lt <- model$latent
-   mr <- model$measure
-   st <- model$struct
-   label <- row.names(lt)
-
-   lf <- factor(leaf, levels = label)
-   rt <- factor(label[lt$root], levels = label)
-   tr <- factor(st$root, levels = unique(st$root))
-
-   # index vector for constraints
-   eqrl <- st$constraint
-   eqlf <- lt$constraint[lt$leaf]
-
-   child <- mr$indicator
-   names(child) <- leaf
-   var <- split(child, eqlf)
-   vars <- lapply(var, function(x) {
-      res <- do.call(rbind, x)
-      dimnames(res) <- list(
-         names(x), paste0("V", seq_len(ncol(res)))
-      )
-      res
-   })
-   levs <- lapply(var, lapply, function(x) unname(level[x]))
-   lev <- lapply(levs, unique)
-   if (!all(lengths(lev) == 1)) {
-      stop("levels for constrained to equal are not equal")
-   }
-   nlev <- lapply(lev, function(x) lengths(x[[1]]))
-
-   # number of node, edge, leaf
-   nlv <- nrow(lt)
-   nrl <- nrow(st)
-   nlf <- length(lf)
-
-   # numbers for data
-   nvar <- lengths(nlev)
-
-   # number of parameter list
-   npi <- length(rt)
-   ntau <- length(unique(eqrl))
-   nrho <- length(unique(eqlf))
-
-   # index vector for model
-   ul <- as.numeric(st$child)
-   vl <- as.numeric(st$parent)
-   lf <- as.numeric(lf)
-   tr <- as.numeric(tr)
-   rt <- as.numeric(rt)
-
-   # number of classes for index vector
-   nc <- lt$nclass
-   nk <- lt$nclass[st$child]
-   nl <- lt$nclass[st$parent]
-   ncl <- lt$nclass[lf]
-
-   # dimension of parameter list
-   nc_pi <- lt[rt, "nclass"]
-   nk_tau <- lt[st[!duplicated(eqrl), "child"], "nclass"]
-   nl_tau <- lt[st[!duplicated(eqrl), "parent"], "nclass"]
-   nc_rho <- lt[lf[!duplicated(eqlf)], "nclass"]
-   nr_rho <- sapply(nlev, sum)
-
-   # parameters
-   pi <- lapply(seq_len(npi), function(x)
-      matrix(ncol = nc_pi[x], dimnames = list("", class = seq_len(nc_pi[x]))))
-   names(pi) <- label[rt]
-   tau <- lapply(seq_len(ntau), function(x)
-      matrix(nrow = nk_tau[x], ncol = nl_tau[x],
-             dimnames = list(child = seq_len(nk_tau[x]),
-                             parent = seq_len(nl_tau[x]))))
-   names(tau) <- LETTERS[seq_along(tau)]
-   rho <- lapply(seq_len(nrho), function(x) {
-      res <- matrix(nrow = nr_rho[x], ncol = nc_rho[x])
-      rn <- unlist(lev[[x]])
-      idx <- cumsum(c(1, nlev[[x]][-nvar[x]]))
-      rn[idx] <- paste0(rn[idx], "(V", seq_len(nvar[x]), ")")
-      dimnames(res) <- list(
-         response = rn,
-         class = seq_len(nc_rho[x])
-      )
-      attr(res, "vars") <- vars[[x]]
-      res
-   })
-   names(rho) <- letters[seq_along(rho)]
-   skeleton_par <- list(pi = pi, tau = tau, rho = rho)
-
-   list(nlv = nlv, nrl = nrl, nlf = nlf,
-        npi = npi, ntau = ntau, nrho = nrho,
-        ul = ul - 1, vl = vl - 1, lf = lf - 1,
-        tr = tr - 1, rt = rt - 1,
-        eqrl = as.numeric(factor(eqrl)) - 1,
-        eqlf = as.numeric(factor(eqlf)) - 1,
-        nc = nc, nk = nk, nl = nl, ncl = ncl,
-        nobs = nobs, nvar = nvar, nlev = nlev,
-        nc_pi = nc_pi, nk_tau = nk_tau, nl_tau = nl_tau,
-        nc_rho = nc_rho, nr_rho = nr_rho,
-        skeleton = list(par = skeleton_par))
 }

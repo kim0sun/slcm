@@ -10,6 +10,7 @@ int sample1(int n, double *prob) {
    }
    return n - 1;
 }
+
 // [[Rcpp::export]]
 double log_add_exp(double x, double y) {
    double ans;

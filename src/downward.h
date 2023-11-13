@@ -1,8 +1,6 @@
 #ifndef DOWNWARD_H
 #define DOWNWARD_H
 
-#include <Rcpp.h>
-
 void dnInit(
    double *alpha, double *lambda, double *pi, double *post,
    double *ll, int nobs, int nclass, bool reg

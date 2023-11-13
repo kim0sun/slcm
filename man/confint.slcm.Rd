@@ -4,24 +4,14 @@
 \alias{confint.slcm}
 \title{Confidence Intervals for Model Parameters}
 \usage{
-\method{confint}{slcm}(
-  object,
-  parm = c("pi", "tau", "rho"),
-  level = 0.95,
-  method = c("asymp", "logit"),
-  out = c("param", "logit")
-)
+\method{confint}{slcm}(object, level = 0.95, type = c("param", "logit"), ...)
 }
 \arguments{
-\item{object}{a fitted slcm object.}
+\item{object}{an object of class \code{slcm} and \code{estimated}.}
 
-\item{parm}{a specification of which parameters are to be given confidence intervals, either a vector of numbers or a vector of names. If missing, all parameters are considered.}
+\item{level}{level a numeric value representing the desired confidence level for the intervals. Default is 0.95}
 
-\item{level}{the confidence level required.}
-
-\item{method}{calculating method for standard error}
-
-\item{out}{the type of output}
+\item{type}{a character string specifying the format in which the results should be returned. Options are \code{"probs"} for probability format and \code{"logit"} for log-odds (logit) format. The default is \code{"probs"}.}
 }
 \description{
 Computes confidence intervals for one or more parameters of fitted model. Package \pkg{slcm} adds methods for \code{slcm} fits.

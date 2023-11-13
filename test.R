@@ -31,8 +31,24 @@
       smoke3[3] ~ ysmoke2008 + msmoke2008 + dsmoke2008 + bsmoke2008,
       pf[3] ~ smoke1 + smoke2 + smoke3,
       constraints = c("smoke1", "smoke2", "smoke3")
-   )
+   ) %>% estimate(dat1)
 }
+gof(lcpa, test = "boot")
+
+lca2 <- slcm(
+   smoke1[2] ~ ysmoke1998 + msmoke1998 + dsmoke1998 + bsmoke1998
+) %>% estimate(dat1)
+lca3 <- slcm(
+   smoke1[3] ~ ysmoke1998 + msmoke1998 + dsmoke1998 + bsmoke1998
+) %>% estimate(dat1)
+lca4 <- slcm(
+   smoke1[4] ~ ysmoke1998 + msmoke1998 + dsmoke1998 + bsmoke1998
+) %>% estimate(dat1)
+
+debug(gof)
+gof(lca2, lca3, lca4, test = "boot")
+
+a <- lcas %>% regress(smoke1 ~ RACE, dat1)
 debug(gof)
 gof(lcpa)
 class(lcpa)
@@ -79,7 +95,7 @@ jlcpa <- slcm(
       c("jc1 ~ mari1", "jc2 ~ mari2", "jc3 ~ mari3")
    )
 ) %>% estimate(dat1)
-
+summary(jlcpa)
 jlcpa <- slcm(
    smoke1[3] ~ ysmoke1998 + msmoke1998 + dsmoke1998 + bsmoke1998,
    drink1[3] ~ ydrink1998 + mdrink1998 + ddrink1998 + bdrink1998,

@@ -21,8 +21,8 @@ fll <- function(y, par, nobs, nvar, nlev, nlv, nrl, nlf, npi, ntau, nrho, ul, vl
     .Call(`_slcm_fll`, y, par, nobs, nvar, nlev, nlv, nrl, nlf, npi, ntau, nrho, ul, vl, lf, tr, rt, eqrl, eqlf, nc, nk, nl, ncl, nc_pi, nk_tau, nl_tau, nc_rho, nr_rho)
 }
 
-calcfreq <- function(mis, nrep, nmis, freq, xobs, nc, N, tol, max_iter) {
-    .Call(`_slcm_calcfreq`, mis, nrep, nmis, freq, xobs, nc, N, tol, max_iter)
+calcfreq2 <- function(mis, nrep, nmis, freq, xobs, nc, N, tol, max_iter) {
+    .Call(`_slcm_calcfreq2`, mis, nrep, nmis, freq, xobs, nc, N, tol, max_iter)
 }
 
 simModel <- function(nobs, nvar, nlev, par, nlv, nrl, nlf, npi, ntau, nrho, ul, vl, lf, rt, eqrl, eqlf, nc, nk, nl, ncl, nc_pi, nk_tau, nl_tau, nc_rho, nr_rho) {

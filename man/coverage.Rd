@@ -7,19 +7,17 @@
 coverage(object, nsim = 100, parm, level = 0.95, verbose = TRUE, control, ...)
 }
 \arguments{
-\item{object}{a \code{slcm} object}
+\item{object}{a \code{slcm} object.}
 
-\item{nsim}{number of simulation sample}
+\item{nsim}{number of simulation sample.}
 
-\item{parm}{parameter to be returned}
+\item{parm}{parameter to be returned.}
 
-\item{level}{significnace level}
+\item{level}{significance level.}
 
-\item{verbose}{print}
+\item{verbose}{print.}
 
-\item{control}{slcm control}
-
-\item{nobs}{number of observations for}
+\item{control}{slcm control.}
 }
 \description{
 Coverage Probabilities for Parameter Estimates for \code{slcm} model

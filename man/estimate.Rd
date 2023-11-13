@@ -3,7 +3,7 @@
 \name{estimate}
 \alias{estimate}
 \alias{estimate.slcm}
-\title{Estimation for Parameters of \code{slcm} Object}
+\title{Estimating Parameters of \code{slcm} Object}
 \usage{
 estimate(object, ...)
 
@@ -13,16 +13,40 @@ estimate(object, ...)
     control = slcmControl(), ...)
 }
 \arguments{
-\item{object}{a \code{slcm} object which defines latent structure to be estimated.}
+\item{object}{an \code{slcm} object defining SLCM model to be estimated.}
 
-\item{data}{a \code{data.frame} object which contains observed categorical variables beloning to the latent structure.}
+\item{data}{a \code{data.frame} object containing observed categorical variables incorporated in the model.}
 
-\item{method}{estimating method for slcm parameters.}
+\item{method}{estimation method for SLCM parameters. The default is \code{"em"}, which employs expecation-maximization (EM) algorithm for estimation; the alternative \code{"nlm"}, utilizes \code{nlm} function for Newton-Raphson algorithm. The \code{"hybrid"} method begins with the EM algorithm and concludes with the \code{nlm} function for refined estimation.}
 
 \item{fix2zero}{a \code{vector} of parameters to be restricted to zero. The details of restriction is given under 'Details'}
 
-\item{control}{a \code{list} of control for the estimation procedure to change default values in \link{slcmControl}.}
+\item{na.rm}{a logical value whether to remove NA.}
+
+\item{control}{a \code{list} of control for the estimation procedure. Used to modify default values in \link{slcmControl}.}
+}
+\value{
+An object of class \code{slcm} and \code{estimated} with an following elements:
+\item{model}{a \code{list} describing of the model.}
+\item{method}{the method used for estimation}
+\item{arg}{the brief model description used during the estimation.}
+\item{mf}{the data.frame used for estimation.}
+\item{par}{the log of the estimated paramters.}
+\item{logit}{the log-odds of the estimated parameters.}
+\item{score}{the score function for the estimated parameters.}
+\item{posterior}{the \code{list} of posterior probablities for each latent class variable.}
+\item{convergence}{a logical indicator of whether convergence was achieved.}
+\item{loglikelihood}{the loglikelihood of the estimated model.}
+\item{control}{the control values used during the estimation process.}
+
+This returned object can be further processed using the \link[slcm]{param()} or \link[slcm]{se()} functions to extract the estimated parameters or their respective standard errors. Additionally, the \link[slcm]{regress()} function enables logistic regression analysis using three-step approach to evaluate the effect of external variables on latent class variables.
 }
 \description{
-Estimation for Parameters of \code{slcm} Object
+Estimate the parameters of model constructed using the \code{slcm} function.
+}
+\details{
+To constrain certain parameters to zero, use the \code{fix2zero} argument. Each parameter is associated with a unique index. You can identify the index of a specific parameter by invoking the \link[slcm]{param()} function with the \code{index = TRUE} argument. To apply these constraints, include the relevant parameter indices in the \code{fix2zero} argument.
+}
+\seealso{
+\link[slcm]{slcm} \link[slcm]{param} \link[slcm]{regress} \link[slcm]{slcmControl}
 }

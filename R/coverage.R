@@ -1,12 +1,11 @@
 #' Coverage Probabilities for Parameter Estimates for `slcm` model
 #'
-#' @param object a \code{slcm} object
-#' @param nsim number of simulation sample
-#' @param parm parameter to be returned
-#' @param nobs number of observations for
-#' @param level significnace level
-#' @param verbose print
-#' @param control slcm control
+#' @param object a \code{slcm} object.
+#' @param nsim number of simulation sample.
+#' @param parm parameter to be returned.
+#' @param level significance level.
+#' @param verbose print.
+#' @param control slcm control.
 #'
 #' @export
 coverage <- function(
