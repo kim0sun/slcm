@@ -33,6 +33,10 @@
       constraints = c("smoke1", "smoke2", "smoke3")
    ) %>% estimate(dat1)
 }
+sim1 <- simulate(lcpa, 500)
+fitted <- lcpa %>% estimate(data = sim1$response)
+param(fitted)
+
 gof(lcpa, test = "boot")
 
 lca2 <- slcm(

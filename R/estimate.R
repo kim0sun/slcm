@@ -46,8 +46,7 @@ estimate <- function(object, ...) UseMethod("estimate")
 estimate.slcm <- function(
       object, data, formula,
       method = c("em", "hybrid", "nlm"),
-      fix2zero = NULL,
-      control = slcmControl(), ...
+      fix2zero = NULL, control = slcmControl(), ...
 ) {
    method <- match.arg(method)
    if (!inherits(control, "slcmControl")) {
@@ -57,13 +56,13 @@ estimate.slcm <- function(
       control <- ctrl
    }
    na.rm <- control$na.rm
-   if (inherits(object, "estimated")) mf <- object$mf
-   else {
-      if (missing(data)) data = parent.frame()
+   if (!missing(data))
       mf <- proc_data(data, object$model, na.rm)
-   }
+   else if (inherits(object, "estimated"))
+      mf <- object$mf
+   else data = parent.frame()
 
-   arg <- arguments(object$model, mf, fix2zero)
+   arg <- arg_mf(object$model, object$arg, mf, fix2zero)
 
    if (inherits(object, "estimated")) {
       par <- object$par
@@ -94,12 +93,17 @@ estimate.slcm <- function(
       arg$nc, arg$nk, arg$nl, arg$ncl,
       arg$nc_pi, arg$nk_tau, arg$nl_tau, arg$nc_rho, arg$nr_rho
    )
-   score <- relist(etc$score, arg$skeleton$score)
-   score <- t(do.call(rbind, score))
-   dimnames(score) <- list(dimnames(mf)[[1]], unlist(arg$par_index))
 
-   post <- relist(exp(etc$post), arg$skeleton$post)
-   joint <- relist(exp(etc$joint), arg$skeleton$joint)
+   skeleton <- get_frame(object$model, arg, mf)
+   par_index <- relist(paste0("(", seq_along(arg$id), ")"),
+                       skeleton$par)
+
+   score <- relist(etc$score, skeleton$score)
+   score <- t(do.call(rbind, score))
+   dimnames(score) <- list(dimnames(mf)[[1]], unlist(par_index))
+
+   post <- relist(exp(etc$post), skeleton$post)
+   joint <- relist(exp(etc$joint), skeleton$joint)
 
    object$method = method
    object$arg <- arg
@@ -111,6 +115,7 @@ estimate.slcm <- function(
    object$posterior <- list(
       marginal = lapply(post, t), joint = joint
    )
+   object$skeleton <- skeleton
    object$convergence <- conv
    object$loglikelihood <- etc$ll
    object$control <- control

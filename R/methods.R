@@ -261,7 +261,7 @@ param.slcm <- function(
       )
    }
 
-   skeleton <- object$arg$skeleton$par
+   skeleton <- object$skeleton$par
 
    res <- relist(est, skeleton)
    attr(res, "index") <- index
@@ -576,7 +576,7 @@ predict.slcm <- function(
          arg$nc, arg$nk, arg$nl, arg$ncl,
          arg$nc_pi, arg$nk_tau, arg$nl_tau, arg$nc_rho, arg$nr_rho
       )$post
-      post <- relist(post, arg$skeleton$post)
+      post <- relist(post, skeleton$post)
    }
    impute <- function(x) apply(x, 1, which.max)
 

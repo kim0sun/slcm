@@ -57,9 +57,13 @@ slcm = function(
    if (!is.list(formula)) formulae <- list(formula, ...)
    else formulae <- formula
    formulae <- formulae[sapply(formulae, inherits, "formula")]
+   model <- proc_formula(formulae, constraints)
+   arg <- arguments(model)
 
    res <- list()
-   res$model <- proc_formula(formulae, constraints)
+   res$model <- model
+   res$arg <- arg
+
    class(res) <- "slcm"
    res
 }

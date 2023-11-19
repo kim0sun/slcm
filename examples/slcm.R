@@ -1,5 +1,5 @@
 # Standard LCA
-slcm(smoke[3] ~ y1 + y2 + y3)
+a <- slcm(smoke[3] ~ y1 + y2 + y3)
 # Latent transition analysis
 slcm(L1[3] ~ y11 + y21 + y31, L2[3] ~ y12 + y22 + y32,
      L1 ~ L2)
