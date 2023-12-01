@@ -74,54 +74,67 @@ regress.slcm <- function(
          prob <- cprobs(X, b, ref)
          - sum(prob[cbind(1:nrow(prob), y)])
       }
-      fit <- nlm(naive_ll, init, X = X, y = y,
-                 ref = nlevels(y), hessian = TRUE)
+      fit1 <- nlm(naive_ll, init, X = X, y = y,
+                  ref = nlevels(y), hessian = TRUE)
+      fit2 <- lapply(c("Nelder-Mead", "BFGS", "CG", "L-BFGS-B", "SANN"), function(x)
+         optim(init, naive_ll, X = X, y = y, method = x,
+               ref = nlevels(y), hessian = TRUE))
    } else {
       # bias_adjusted
-      p <- object$posterior$marginal[latent][rownames(mf), ]
+      p <- object$posterior$marginal[[latent]][rownames(mf),]
       w <- switch(
          imputation,
-         modal = lapply(p, apply, 1, function(x) x == max(x)),
+         modal = apply(p, 1, function(x) x == max(x)),
          prob  = p
       )
-      d <- lapply(p, function(pp) (pp %*% w) / rowSums(pp))
+      d <- (w %*% p) / colSums(p)
 
       if (method == "BCH") {
          # BCH
-         w_ <- Map(function(x, y) x %*% ginv(y), w, d)
+         w_ <- t(w) %*% ginv(d)
 
          bch_ll <- function(par, X, w_, ref) {
             b <- matrix(par, ncol(X))
             prob <- cprobs(X, b, ref)
             - sum(w_ * prob)
          }
-         fit <- nlm(bch_ll, init, X = X, w_ = w_,
-                    ref = nlevels(y), hessian = TRUE)
+         fit1 <- nlm(bch_ll, init, X = X, w_ = w_,
+                     ref = nlevels(y), hessian = TRUE)
+         fit2 <- lapply(c("Nelder-Mead", "BFGS", "CG", "L-BFGS-B", "SANN"), function(x)
+            optim(init, bch_ll, X = X, w_ = w_, method = x,
+                  ref = nlevels(y), hessian = TRUE))
       } else if (method == "ML") {
          # ML
-         w_ <- t(sapply(y, function(x) d[,x]))
+         w_ <- log(sapply(y, function(x) d[, x]))
 
          ml_ll <- function(par, X, w_, ref) {
             b <- matrix(par, ncol(X))
-            prob <- probs(X, b, ref)
-            ll <- rowSums(exp(prob + log(w_)))
-            - sum(log(ll))
+            prob <- t(cprobs(X, b, ref))
+            ll <- colSums(exp(prob + w_))
+            -sum(log(ll))
          }
-         fit <-  nlm(ml_ll, init, X = X, w_ = w_,
+         fit1 <- nlm(ml_ll, init, X = X, w_ = w_,
                      ref = nlevels(y), hessian = TRUE)
+         fit2 <- lapply(c("Nelder-Mead", "BFGS", "CG", "L-BFGS-B", "SANN"), function(x)
+            optim(init, ml_ll, X = X, w_ = w_, method = x,
+                  ref = nlevels(y), hessian = TRUE))
       }
    }
+
+   ll <- c(fit1$minimum, sapply(fit2, "[[", "value"))
+   par <- cbind(fit1$estimate, sapply(fit2, "[[", "par"))[,which.min(ll)]
+   hess <- c(list(fit1), fit2)[[which.min(ll)]]$hessian
 
    rn <- paste0(seq_len(nr), "/", nr + 1)
    cn <- colnames(X)
    coef <- matrix(
-      fit$estimate, nr, nc,
+      par, nr, nc, byrow = TRUE,
       dimnames = list(class = rn, cn)
    )
 
    dn <- paste0(rep(cn, nr), "|", rep(rn, each = nc))
    vcov <- matrix(
-      ginv(fit$hessian), nc * nr, nc * nr,
+      ginv(hess), nc * nr, nc * nr,
       dimnames = list(dn, dn)
    )
 
@@ -136,7 +149,7 @@ regress.slcm <- function(
    res$vcov <- vcov
    res$dim <- c(nr, nc)
    class(res) <- "reg.slcm"
-   res$ll <- -fit$minimum
+   res$ll <- -min(ll)
 
    return(res)
 }

@@ -5,15 +5,7 @@
 \title{Simulate \code{slcm} Object
 Simulate data from \code{slcm} model.}
 \usage{
-\method{simulate}{slcm}(
-  object,
-  nsim = 500,
-  nlevel = 2,
-  what = c("response", "class", "probs"),
-  params = NULL,
-  seed = NULL,
-  ...
-)
+\method{simulate}{slcm}(object, nsim = 500, nlevel = 2, random.param = TRUE, seed = NULL, ...)
 }
 \arguments{
 \item{object}{a \code{slcm} object}
@@ -22,11 +14,11 @@ Simulate data from \code{slcm} model.}
 
 \item{nlevel}{number of categories for each manifest item.}
 
+\item{seed}{random seed}
+
 \item{what}{objects to be printed among response, class, probs (params)}
 
 \item{params}{parameters to be designated}
-
-\item{seed}{random seed}
 }
 \description{
 Simulate \code{slcm} Object

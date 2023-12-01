@@ -15,7 +15,7 @@ plot.slcm <- function(x, abbreviation = FALSE, dir = "TD",
 
    node <- paste0(
       "node [shape = box]\n",
-      paste(child[latent$leaf], collapse = ", "),
+      paste(setdiff(unlist(latent$children), parent), collapse = ", "),
       "\n\n node [shape = oval]\n",
       paste(names(child), collapse = ", ")
    )
@@ -36,5 +36,4 @@ plot.slcm <- function(x, abbreviation = FALSE, dir = "TD",
 
    DiagrammeR::grViz(text, ...)
 }
-
 

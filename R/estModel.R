@@ -33,6 +33,7 @@ estModel <- function(method, control, par, mf, arg) {
       if (control$verbose) cat(".. done.\n")
    } else if (method == "nlm") {
       if (control$verbose) cat("nlm iteration begin.\n")
+      fix0 <- union(which(arg$fix0), which(is.infinite(par)))
       logit <- par - par[arg$ref_idx[arg$id]]
       nonlm <- nlm(
          llf, logit[-c(which(arg$fix0), arg$ref_idx)],
@@ -48,7 +49,7 @@ estModel <- function(method, control, par, mf, arg) {
          iterlim = control$nlm.iterlim,
          gradtol = control$nlm.tol, steptol = control$nlm.tol
       )
-      logit[-c(which(fix0), arg$ref_idx)] <- nonlm$estimate
+      logit[-c(fix0, arg$ref_idx)] <- nonlm$estimate
       par <- unlist(tapply(logit, arg$id, norm2))
       em.conv <- NA
       nlm.conv <- nlm_fit$code < 3
@@ -84,9 +85,8 @@ estModel <- function(method, control, par, mf, arg) {
       logit[-c(fix0, arg$ref_idx)] <- nonlm$estimate
       par <- unlist(tapply(logit, arg$id, norm2))
 
-      relist(exp(par), arg$skeleton$par)
-      em.conv  <- em_fit$converged
-      nlm.conv <- nlm_fit$code < 3
+      em.conv  <- em$converged
+      nlm.conv <- nonlm$code < 3
       if (control$verbose) cat(".. done.\n")
    }
 

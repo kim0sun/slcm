@@ -3,16 +3,62 @@
    library(tidyverse)
    dat <- read_csv("~/Dropbox/Personal/Dissertation/data/data_rmjlca.csv")
    dat1 <- dat %>% mutate(
-      dsmoke1998 = msmoke1998 == 30, msmoke1998 = msmoke1998 > 0, bsmoke1998 = pdsmoke1998 >= 10,
-      dsmoke2003 = msmoke2003 == 30, msmoke2003 = msmoke2003 > 0, bsmoke2003 = pdsmoke2003 >= 10,
-      dsmoke2008 = msmoke2008 == 30, msmoke2008 = msmoke2008 > 0, bsmoke2008 = pdsmoke2008 >= 10,
-      ddrink1998 = mdrink1998 >= 5, mdrink1998 = mdrink1998 > 0, bdrink1998 = bdrink1998 > 0,
-      ddrink2003 = mdrink2003 >= 5, mdrink2003 = mdrink2003 > 0, bdrink2003 = bdrink2003 > 0,
-      ddrink2008 = mdrink2008 >= 5, mdrink2008 = mdrink2008 > 0, bdrink2008 = bdrink2008 > 0,
-      dmari1998 = mmari1998 >= 10, mmari1998 = mmari1998 > 0, smari1998 = smari1998 > 0,
-      dmari2003 = mmari2003 >= 10, mmari2003 = mmari2003 > 0, smari2003 = smari2003 > 0,
-      dmari2008 = mmari2008 >= 10, mmari2008 = mmari2008 > 0, smari2008 = smari2008 > 0
-   ) %>% mutate_all(as.numeric)
+      ESMK_98 = ysmoke1998,
+      FSMK_98 = msmoke1998 > 0,
+      DSMK_98 = msmoke1998 == 30,
+      HSMK_98 = pdsmoke1998 >= 10,
+      EDRK_98 = ydrink1998,
+      CDRK_98 = mdrink1998 > 0,
+      WDRK_98 = mdrink1998 >= 5,
+      BDRK_98 = bdrink1998 > 0,
+      EMRJ_98 = ymari1998,
+      CMRJ_98 = mmari1998 > 0,
+      OMRJ_98 = mmari1998 >= 10,
+      SMRJ_98 = smari1998 > 0,
+      ESMK_03 = ysmoke2003,
+      FSMK_03 = msmoke2003 > 0,
+      DSMK_03 = msmoke2003 == 30,
+      HSMK_03 = pdsmoke2003 >= 10,
+      EDRK_03 = ydrink2003,
+      CDRK_03 = mdrink2003 > 0,
+      WDRK_03 = mdrink2003 >= 5,
+      BDRK_03 = bdrink2003 > 0,
+      EMRJ_03 = ymari2003,
+      CMRJ_03 = mmari2003 > 0,
+      OMRJ_03 = mmari2003 >= 10,
+      SMRJ_03 = smari2003 > 0,
+      ESMK_08 = ysmoke2008,
+      FSMK_08 = msmoke2008 > 0,
+      DSMK_08 = msmoke2008 == 30,
+      HSMK_08 = pdsmoke2008 >= 10,
+      EDRK_08 = ydrink2008,
+      CDRK_08 = mdrink2008 > 0,
+      WDRK_08 = mdrink2008 >= 5,
+      BDRK_08 = bdrink2008 > 0,
+      EMRJ_08 = ymari2008,
+      CMRJ_08 = mmari2008 > 0,
+      OMRJ_08 = mmari2008 >= 10,
+      SMRJ_08 = smari2008 > 0
+   ) %>% select(SEX = sex, RACE,
+                ESMK_98, FSMK_98, DSMK_98, HSMK_98,
+                EDRK_98, CDRK_98, WDRK_98, BDRK_98,
+                EMRJ_98, CMRJ_98, OMRJ_98, SMRJ_98,
+                ESMK_03, FSMK_03, DSMK_03, HSMK_03,
+                EDRK_03, CDRK_03, WDRK_03, BDRK_03,
+                EMRJ_03, CMRJ_03, OMRJ_03, SMRJ_03,
+                ESMK_08, FSMK_08, DSMK_08, HSMK_08,
+                EDRK_08, CDRK_08, WDRK_08, BDRK_08,
+                EMRJ_08, CMRJ_08, OMRJ_08, SMRJ_08)
+
+
+nlsy97 <- dat1 %>% mutate_at(vars(ends_with("98"), ends_with("03"), ends_with("08")),
+                   ~factor(as.logical(.), levels = c(TRUE, FALSE), labels = c("Yes", "No"))) %>%
+   mutate(SEX = factor(SEX, labels = c("Male", "Female")),
+          RACE = factor(RACE, labels = c("Black", "Hispanic", "Mixed Race (Non-Hispanic)",
+                                "Non-Black / Non-Hispanic")))
+str(nlsy97)
+save(gss1620, file = "data/gss1620.rda")
+save(nlsy97, file = "data/nlsy97.rda")
 
    lcas <- slcm(
       smoke1[3] ~ ysmoke1998 + msmoke1998 + dsmoke1998 + bsmoke1998,

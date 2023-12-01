@@ -4,22 +4,22 @@
 \alias{nlsy97}
 \title{NLSY97 Substance Use Data}
 \format{
-A data frame with 1004 rows and 36 columns:
+A data frame with 1004 rows and 38 columns:
 \describe{
-\item{\code{esmoke98}}{(Ever smoked) Ever smoked in 1998 (0=No, 1=Yes)}
-\item{\code{fsmoke98}}{(Frequent smoke) Monthly smokes in 1998 (0=No, 1=Yes)}
-\item{\code{dsmoke98}}{(Daily smoke) Daily smokes in 1998 (0=No, 1=Yes)}
-\item{\code{hsmoke98}}{(Heavy smoke) 10+ cigarettes per day in 1998 (0=No, 1=Yes)}
-
-\item{\code{cdrink98}}{(Current drink) Have you ever drunk in 1998? (0=No, 1=Yes)}
-\item{\code{fdrink98}}{Monthly drinking in 1998 (0=No, 1=Yes)}
-\item{\code{drk5d98}}{5+ days drinking in a month in 1998 (0=No, 1=Yes)}
-\item{\code{bngDrk98}}{Binge drinking in 1998 (0=No, 1=Yes)}
-
-\item{\code{mjYr98}}{Have you ever used marijuana in 1998? (0=No, 1=Yes)}
-\item{\code{mjMth98}}{Monthly marijuana use in 1998 (0=No, 1=Yes)}
-\item{\code{mj10d98}}{10+ days marijuana use in a month in 1998 (0=No, 1=Yes)}
-\item{\code{mjSchWk98}}{Marijuana use before/during school or work in 1998 (0=No, 1=Yes)}
+\item{\code{SEX}}{Respondent's sex}
+\item{\code{RACE}}{Respondent's race}
+\item{\code{ESMK_98}}{(Ever smoked) Ever smoked in 1998 (0: No, 1: Yes)}
+\item{\code{FSMK_98}}{(Frequent smoke) Monthly smokes in 1998 (0: No, 1: Yes)}
+\item{\code{DSMK_98}}{(Daily smoke) Daily smokes in 1998 (0: No, 1: Yes)}
+\item{\code{HSMK_98}}{(Heavy smoke) 10+ cigarettes per day in 1998 (0: No, 1: Yes)}
+\item{\code{EDRK_98}}{(Ever drunk) Have you ever drunk in 1998? (0: No, 1: Yes)}
+\item{\code{CDRK_98}}{(Current drinker) Monthly drinking in 1998 (0: No, 1: Yes)}
+\item{\code{WDRK_98}}{(Weakly drinker) 5+ days drinking in a month in 1998 (0: No, 1: Yes)}
+\item{\code{BDRK_98}}{(Binge drinker) 5+ drinks on the same day at least one time in the last 30 day (0: No, 1: Yes)}
+\item{\code{EMRJ_98}}{(Ever marijuana used) Have you ever used marijuana in 1998? (0: No, 1: Yes)}
+\item{\code{CMRJ_98}}{(Corrent marijuana user) Monthly marijuana use in 1998 (0: No, 1: Yes)}
+\item{\code{OMRJ_98}}{(Occasional marijuana user) 10+ days marijuana use in a month in 1998 (0: No, 1: Yes)}
+\item{\code{SMRJ_98}}{(School/work marijuana user) Marijuana use before/during school or work in 1998 (0: No, 1: Yes)}
 }
 Similar naming conventions apply for the years 2003 and 2008, replacing '98' with '03' and '08', respectively.
 }

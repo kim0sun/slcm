@@ -3,7 +3,9 @@ get_lformula <- function(f) {
    lhs_split <- strsplit(lhs, "[()]|\\[|\\]")[[1]]
 
    attr(f, "label") <- lhs_split[1]
-   attr(f, "nclass") <- as.numeric(lhs_split[2])
+   if (exists(lhs_split[2])) nc <- get(lhs_split[2])
+   else nc <- lhs_split[2]
+   attr(f, "nclass") <- as.numeric(nc)
    attr(f, "vars") <- labels(terms(f))
 
    f

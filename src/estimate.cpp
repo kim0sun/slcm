@@ -229,6 +229,7 @@ List em_est(
    res["param"] = par;
    res["converged"] = dll < tol;
    res["niter"] = iter;
+   res["ll"] = currll;
    return res;
 }
 

@@ -24,3 +24,5 @@ LinkingTo:
 Imports: 
     DiagrammeR,
     Rcpp
+Depends: 
+    R (>= 2.10)

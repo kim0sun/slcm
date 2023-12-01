@@ -185,7 +185,7 @@ get_frame <- function(model, arg, mf) {
    names(tau) <- LETTERS[seq_along(tau)]
    rho <- lapply(seq_len(arg$nrho), function(x) {
       res <- matrix(nrow = arg$nr_rho[x], ncol = arg$nc_rho[x])
-      rn <- sapply(arg$nlev[[x]], seq_len)
+      rn <- unlist(sapply(arg$nlev[[x]], seq_len))
       idx <- cumsum(c(1, arg$nlev[[x]][-arg$nvar[x]]))
       rn[idx] <- paste0(rn[idx], "(V", seq_len(arg$nvar[x]), ")")
       dimnames(res) <- list(

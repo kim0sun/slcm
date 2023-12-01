@@ -73,8 +73,42 @@ estimate.slcm <- function(
       else
          par <- unlist(tapply(init.param, arg$id, norm2), use.names = FALSE)
    } else {
-      for (i in 1:control$nrep) {
-         init.param <- runif(length(arg$id))
+      if (control$nrep > 1) {
+         if (control$verbose)
+            cat("Inital parameter test: \n")
+         testll <- -Inf
+         for (i in 1:control$nrep) {
+            if (control$verbose) {
+               cat(i, "/", control$nrep, " ")
+            }
+            init.param <- runif(length(arg$id), 1, 1.1)
+            init.param[arg$fix0] <- -Inf
+            tpar <- unlist(tapply(init.param, arg$id, norm1),
+                           use.names = FALSE)
+            em <- em_est(
+               attr(mf, "y"), arg$nobs, arg$nvar, unlist(arg$nlev),
+               tpar, arg$fix0, arg$nlv, arg$nrl, arg$nlf,
+               arg$npi, arg$ntau, arg$nrho,
+               arg$ul, arg$vl, arg$lf, arg$tr, arg$rt, arg$eqrl, arg$eqlf,
+               arg$nc, arg$nk, arg$nl, arg$ncl,
+               arg$nc_pi, arg$nk_tau, arg$nl_tau, arg$nc_rho, arg$nr_rho,
+               control$test.iter, 0, FALSE, 100
+            )
+            if (em$ll > testll) {
+               par <- em$param
+               testll <- em$ll
+               best <- i
+            }
+            if (control$verbose)
+               cat("logLik:", em$ll, "\n")
+         }
+         if (control$verbose) {
+            cat("\n", best,
+                "th parameter set has been selected.\n\n",
+                sep = "")
+         }
+      } else {
+         init.param <- runif(length(arg$id), 1, 1.1)
          init.param[arg$fix0] <- -Inf
          par <- unlist(tapply(init.param, arg$id, norm2), use.names = FALSE)
       }

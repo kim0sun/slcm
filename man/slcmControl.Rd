@@ -11,6 +11,7 @@ slcmControl(
   nlm.tol = 1e-08,
   init.param = NULL,
   nrep = 1,
+  test.iter = 100,
   na.rm = FALSE,
   verbose = TRUE
 )
@@ -24,9 +25,11 @@ slcmControl(
 
 \item{nlm.tol}{a numeric value setting tolerance for the convergence of \code{nlm} function. Default is 1e-8.}
 
-\item{init.param}{initial parameters}
+\item{init.param}{initial parameters.}
 
-\item{nrep}{number of trials}
+\item{nrep}{number of trials.}
+
+\item{test.iter}{an integer specifying maximum number of iterations allowed for testing parameters.}
 
 \item{na.rm}{a logical value indicating whether to remove missing values (NA)}
 
