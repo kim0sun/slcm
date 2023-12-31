@@ -16,8 +16,8 @@
 #'
 #' @export
 slcmControl <- function(
-   em.iterlim = 1000, em.tol = 1e-6,
-   nlm.iterlim = 500, nlm.tol = 1e-8,
+   em.iterlim = 5000, em.tol = 1e-6,
+   nlm.iterlim = 1000, nlm.tol = 1e-8,
    init.param = NULL,
    nrep = 1, test.iter = 100,
    na.rm = FALSE, verbose = TRUE

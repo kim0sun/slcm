@@ -147,18 +147,18 @@ summary.slcm = function(
       print(mat, quote = FALSE, na.print = "")
    }
 
-   if (estimated) {
-      cat("\nSummary of manifest variables:\n")
-      freq <- lapply(object$mf, table)
-      lst <- Map(function(x, y) paste0(x, ": ", y),
-                 lapply(freq, names), freq)
-      mat <- matrix(nrow = nvar, ncol = max(sapply(freq, length)))
-      for (i in seq_len(nvar)) {
-         mat[i, ] <- lst[[i]]
-      }
-      dimnames(mat) <- list(paste0(" ", names(freq)), c("", ""))
-      print(mat, quote = FALSE, print.gap = 2)
+   cat("\nSummary of manifest variables:\n")
+   freq <- lapply(object$mf, table)
+   lst <- Map(function(x, y) paste0(x, ": ", y),
+              lapply(freq, names), freq)
+   mat <- matrix(nrow = nvar, ncol = max(sapply(freq, length)))
+   for (i in seq_len(nvar)) {
+      mat[i, ] <- lst[[i]]
+   }
+   dimnames(mat) <- list(paste0(" ", names(freq)), c("", ""))
+   print(mat, quote = FALSE, print.gap = 2)
 
+   if (inherits("estimated")) {
       cat("\nSummary of model fit:\n")
       npar <- object$arg$df
       llik <- logLik(object)
@@ -210,13 +210,15 @@ summary.slcm = function(
       )
       print(mat, na.print = "", quote = FALSE, right = TRUE)
    }
+
+   invisible(object)
 }
 
 #' Printing Estimated Parameters of `slcm` Object
 #'
 #' By passing `estimated` `slcm` object, the function prints estimated parameters of the slcm model.
 #'
-#' @aliases param param.slcm se se.slcm
+#' @aliases param param.slcm
 #'
 #' @usage
 #' param(object, ...)
@@ -290,11 +292,13 @@ print.param.slcm <- function(
       cat(paste0("(", i, ")\n"))
       print(ans[["pi"]][[i]], right = TRUE, quote = FALSE)
    }
-   cat("\nTAU :\n")
-   for (i in names(ans[["tau"]])) {
-      cat(paste0("(", i, ")\n"))
-      print(ans[["tau"]][[i]], right = TRUE, quote = FALSE)
-      print(attr(x[["tau"]][[i]], "vars"), quote = FALSE)
+   if (length(ans[["tau"]])) {
+      cat("\nTAU :\n")
+      for (i in names(ans[["tau"]])) {
+         cat(paste0("(", i, ")\n"))
+         print(ans[["tau"]][[i]], right = TRUE, quote = FALSE)
+         print(attr(x[["tau"]][[i]], "vars"), quote = FALSE)
+      }
    }
    cat("\nRHO :\n")
    for (i in names(ans[["rho"]])) {
@@ -372,10 +376,11 @@ predict.slcm <- function(
 #'
 #' @exportS3Method stats::confint slcm
 confint.slcm <- function(
-   object, level = 0.95,
-   type = c("param", "logit"), ...
+   object, level = 0.95, type = c("param", "logit"),
+   index, ...
 ) {
    if (!inherits(object, "estimated")) return(NA)
+   if (missing(index)) index <- seq_along(object$logit)
    type <- match.arg(type)
 
    logit <- object$logit
@@ -393,12 +398,92 @@ confint.slcm <- function(
    ci_par <- ci_logit
    ci_par[] <- exp(unlist(apply(ci_logit, 2, tapply, object$arg$id, norm2)))
 
-   id <- unlist(object$arg$par_index)
-   ci <- switch(type, param = ci_par[id,], logit = ci_logit[id,])
+   ci <- switch(type, param = ci_par[index,], logit = ci_logit[index,])
    colnames(ci) <- cn
+   rownames(ci) <- paste0("(", index, ")")
    ci
 }
 
 format.pc <- function(perc, digits)
    paste(format(100 * perc, trim = TRUE, scientific = FALSE, digits = digits), "%")
 
+
+#' Reorder Latent Class Membership of Class Variables
+#'
+#' Reordering
+#'
+#' @param x an object of class `slcm` and `estimated`.
+#' @param ... arguments designating the new order of the latent class variables.
+#'
+#'
+#' @exportS3Method stats::reorder slcm
+#'
+reorder.slcm <- function(x, ...) {
+   if (!inherits(x, "estimated")) return(NA)
+   m <- match.call(expand.dots = FALSE)
+   orders <- lapply(list(...), order)
+
+   name <- intersect(names(orders), row.names(x$model$latent))
+   nc <- x$model$latent[name, "nclass"]
+   od <- orders[name]
+
+   id <- relist(seq_along(x$par), x$skeleton$par)
+
+   pi_name <- names(id$pi)
+   tau_name <- lapply(id$tau, attr, "vars")
+   parent <- lapply(tau_name, "[", 1, )
+   child <- lapply(tau_name, "[", 2, )
+   rho_name <- lapply(id$rho, function(x)
+      row.names(attr(x, "vars")))
+
+
+   for (nm in name) {
+      if (nm %in% pi_name)
+         id$pi[[nm]] <- reorder(id$pi[[nm]], 2, od[[nm]])
+      for (i in names(parent)) {
+         if (nm %in% parent[[i]])
+            id$tau[[i]] <- reorder(id$tau[[i]], 2, od[[nm]])
+
+         if (nm %in% child[[i]])
+            id$tau[[i]] <- reorder(id$tau[[i]], 1, od[[nm]])
+      }
+      for (i in names(rho_name)) {
+         if (nm %in% rho_name[[i]])
+            id$rho[[i]] <- reorder(id$rho[[i]], 2, od[[nm]])
+      }
+   }
+
+   rid <- unlist(id, use.names = FALSE)
+   par <- x$par[rid]
+
+   etc <- calcModel(
+      attr(mf, "y"), arg$nobs, arg$nvar, unlist(arg$nlev),
+      par, arg$fix0, arg$ref - 1, arg$nlv, arg$nrl, arg$nlf,
+      arg$npi, arg$ntau, arg$nrho, arg$ul, arg$vl,
+      arg$lf, arg$tr, arg$rt, arg$eqrl, arg$eqlf,
+      arg$nc, arg$nk, arg$nl, arg$ncl,
+      arg$nc_pi, arg$nk_tau, arg$nl_tau, arg$nc_rho, arg$nr_rho
+   )
+
+   skeleton <- x$skeleton
+   par_index <- relist(paste0("(", seq_along(arg$id), ")"),
+                       skeleton$par)
+
+   score <- relist(etc$score, skeleton$score)
+   score <- t(do.call(rbind, score))
+   dimnames(score) <- list(dimnames(mf)[[1]], unlist(par_index))
+
+   post <- relist(exp(etc$post), skeleton$post)
+   joint <- relist(exp(etc$joint), skeleton$joint)
+
+   x$par <- par
+   x$logit <- logit
+   x$fix2zero <- x$fix2zero[rid]
+   x$arg$fix0 <- x$arg$fix0[rid]
+   x$score <- score
+   x$posterior <- list(
+      marginal = lapply(post, t), joint = joint
+   )
+
+   x
+}

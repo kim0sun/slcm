@@ -37,3 +37,4 @@ plot.slcm <- function(x, abbreviation = FALSE, dir = "TD",
    DiagrammeR::grViz(text, ...)
 }
 
+

@@ -5,9 +5,9 @@
 \title{Control Parameters for slcm Estimation}
 \usage{
 slcmControl(
-  em.iterlim = 1000,
+  em.iterlim = 5000,
   em.tol = 1e-06,
-  nlm.iterlim = 500,
+  nlm.iterlim = 1000,
   nlm.tol = 1e-08,
   init.param = NULL,
   nrep = 1,

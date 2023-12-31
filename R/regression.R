@@ -2,6 +2,11 @@
 #'
 #' This function allows you to perform regression analysis to understand the impact of exogenous (external) variables on the latent class variables in the estimated slcm model. Logistic regression and three-step approach is used for this purpose.
 #'
+#' \method{regress}{slcm}(
+#'    object, formula, data = parent.frame(),
+#'    imputation = c("modal", "prob"),
+#'    method = c("naive", "BCH", "ML"), ...
+#' )
 #' @param object an object of class `slcm` and `estimated`
 #' @param formula a formula defining the regression model. It should include both latent class variables from the estimated model and any exogenous (external) variables
 #' @param data an optional data frame containing the exogenous variables in interest.
@@ -74,11 +79,24 @@ regress.slcm <- function(
          prob <- cprobs(X, b, ref)
          - sum(prob[cbind(1:nrow(prob), y)])
       }
-      fit1 <- nlm(naive_ll, init, X = X, y = y,
-                  ref = nlevels(y), hessian = TRUE)
+      fit1 <- try(nlm(naive_ll, init, X = X, y = y,
+                      ref = nlevels(y), hessian = TRUE), TRUE)
+      if (!inherits(fit1, "try-error")) {
+         ll <- fit1$minimum
+         par <- list(fit1$estimate)
+         hess <- list(fit1$hessian)
+      } else {
+         ll <- c()
+         par <- list()
+         hess <- list()
+      }
       fit2 <- lapply(c("Nelder-Mead", "BFGS", "CG", "L-BFGS-B", "SANN"), function(x)
-         optim(init, naive_ll, X = X, y = y, method = x,
-               ref = nlevels(y), hessian = TRUE))
+         try(optim(init, naive_ll, X = X, y = y, method = x,
+               ref = nlevels(y), hessian = TRUE), TRUE))
+      fit2 <- fit2[sapply(fit2, class) != "try-error"]
+      ll <- c(ll, sapply(fit2, "[[", "value"))
+      par <- c(par, lapply(fit2, "[[", "par"))
+      hess <- c(hess, lapply(fit2, "[[", "hessian"))
    } else {
       # bias_adjusted
       p <- object$posterior$marginal[[latent]][rownames(mf),]
@@ -98,11 +116,24 @@ regress.slcm <- function(
             prob <- cprobs(X, b, ref)
             - sum(w_ * prob)
          }
-         fit1 <- nlm(bch_ll, init, X = X, w_ = w_,
-                     ref = nlevels(y), hessian = TRUE)
+         fit1 <- try(nlm(bch_ll, init, X = X, w_ = w_,
+                         ref = nlevels(y), hessian = TRUE, iterlim = 2))
+         if (!inherits(fit1, "try-error")) {
+            ll <- fit1$minimum
+            par <- list(fit1$estimate)
+            hess <- list(fit1$hessian)
+         } else {
+            ll <- c()
+            par <- list()
+            hess <- list()
+         }
          fit2 <- lapply(c("Nelder-Mead", "BFGS", "CG", "L-BFGS-B", "SANN"), function(x)
-            optim(init, bch_ll, X = X, w_ = w_, method = x,
-                  ref = nlevels(y), hessian = TRUE))
+            try(optim(init, bch_ll, X = X, w_ = w_, method = x,
+                  ref = nlevels(y), hessian = TRUE), TRUE))
+         fit2 <- fit2[sapply(fit2, class) != "try-error"]
+         ll <- c(ll, sapply(fit2, "[[", "value"))
+         par <- c(par, lapply(fit2, "[[", "par"))
+         hess <- c(hess, lapply(fit2, "[[", "hessian"))
       } else if (method == "ML") {
          # ML
          w_ <- log(sapply(y, function(x) d[, x]))
@@ -113,17 +144,29 @@ regress.slcm <- function(
             ll <- colSums(exp(prob + w_))
             -sum(log(ll))
          }
-         fit1 <- nlm(ml_ll, init, X = X, w_ = w_,
-                     ref = nlevels(y), hessian = TRUE)
+         fit1 <- try(nlm(ml_ll, init, X = X, w_ = w_,
+                     ref = nlevels(y), hessian = TRUE), TRUE)
+         if (!inherits(fit1, "try-error")) {
+            ll <- fit1$minimum
+            par <- list(fit1$estimate)
+            hess <- list(fit1$hessian)
+         } else {
+            ll <- c()
+            par <- list()
+            hess <- list()
+         }
          fit2 <- lapply(c("Nelder-Mead", "BFGS", "CG", "L-BFGS-B", "SANN"), function(x)
-            optim(init, ml_ll, X = X, w_ = w_, method = x,
-                  ref = nlevels(y), hessian = TRUE))
+            try(optim(init, ml_ll, X = X, w_ = w_, method = x,
+                  ref = nlevels(y), hessian = TRUE), TRUE))
+         fit2 <- fit2[sapply(fit2, class) != "try-error"]
+         ll <- c(ll, sapply(fit2, "[[", "value"))
+         par <- c(par, lapply(fit2, "[[", "par"))
+         hess <- c(hess, lapply(fit2, "[[", "hessian"))
       }
    }
 
-   ll <- c(fit1$minimum, sapply(fit2, "[[", "value"))
-   par <- cbind(fit1$estimate, sapply(fit2, "[[", "par"))[,which.min(ll)]
-   hess <- c(list(fit1), fit2)[[which.min(ll)]]$hessian
+   par <- par[[which.min(ll)]]
+   hess <- hess[[which.min(ll)]]
 
    rn <- paste0(seq_len(nr), "/", nr + 1)
    cn <- colnames(X)
@@ -148,8 +191,8 @@ regress.slcm <- function(
    res$std.err <- se
    res$vcov <- vcov
    res$dim <- c(nr, nc)
+   res$ll <- - min(ll)
    class(res) <- "reg.slcm"
-   res$ll <- -min(ll)
 
    return(res)
 }

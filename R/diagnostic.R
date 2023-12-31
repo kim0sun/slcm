@@ -51,7 +51,7 @@ gof <- function(object, ...) UseMethod("gof")
 
 #' @exportS3Method slcm::gof slcm
 gof.slcm <- function(
-      object, ...,  test = c("chisq", "boot"), nboot = 100,
+      object, ...,  test = c("none", "chisq", "boot"), nboot = 100,
       maxiter = 100, tol = 1e-6, verbose = FALSE
 ) {
    cl <- match.call(expand.dots = FALSE)
@@ -159,7 +159,7 @@ gof.slcm <- function(
 #'
 #' @export
 compare <- function(
-      model1, model2, test = c("chisq", "boot"),
+      model1, model2, test = c("none", "chisq", "boot"),
       nboot = 100, maxiter = 500, tol = 1e-5,
       verbose = FALSE
 ) {

@@ -3,8 +3,6 @@
 \name{param}
 \alias{param}
 \alias{param.slcm}
-\alias{se}
-\alias{se.slcm}
 \title{Printing Estimated Parameters of \code{slcm} Object}
 \usage{
 param(object, ...)
