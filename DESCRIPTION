@@ -1,6 +1,6 @@
 Package: slcm
 Type: Package
-Title: Structural Modeling via Multiple Latent Classs Variables
+Title: Structural Modeling for Multiple Latent Classs Variables
 Version: 0.0.0
 Authors@R: 
    c(person(given = "Youngsun",
@@ -12,8 +12,7 @@ Authors@R:
             role = c("aut"),
             email = "hwanch@korea.ac.kr"))
 Maintainer: Youngsun Kim <yskstat@gmail.com>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Description: 
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true

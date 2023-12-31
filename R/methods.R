@@ -455,6 +455,16 @@ reorder.slcm <- function(x, ...) {
 
    rid <- unlist(id, use.names = FALSE)
    par <- x$par[rid]
+   arg <- x$arg
+   arg$fix0 <- arg$fix0[rid]
+   ref <- arg$ref
+   ref_idx <- cumsum(ref)
+   while (any(cond <- ref_idx %in% fix2zero)) {
+      ref[cond] <- ref[cond] - 1
+      ref_idx[cond] <- ref_idx[cond] - 1
+   }
+   arg$ref <- ref
+   arg$ref_idx <- ref_idx
 
    etc <- calcModel(
       attr(mf, "y"), arg$nobs, arg$nvar, unlist(arg$nlev),
@@ -476,10 +486,11 @@ reorder.slcm <- function(x, ...) {
    post <- relist(exp(etc$post), skeleton$post)
    joint <- relist(exp(etc$joint), skeleton$joint)
 
+   x$arg <- arg
    x$par <- par
    x$logit <- logit
-   x$fix2zero <- x$fix2zero[rid]
-   x$arg$fix0 <- x$arg$fix0[rid]
+   x$fix2zero
+   x$arg$fix0 <- fix0
    x$score <- score
    x$posterior <- list(
       marginal = lapply(post, t), joint = joint

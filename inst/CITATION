@@ -1,0 +1,9 @@
+bibentry(
+  bibtype = "Manual",
+  textVersion = "Y. Kim and H. Chung. strlcm: Structural Modeling for Multiple Latent Class Variables, 2024.",
+  header = "To cite strlcm in publications, please use",
+  author = "Youngsun Kim and Hwan Chung",
+  title = "strlcm: Structural Modeling for Multiple Latent Class Variables",
+  year = "2024",
+  url = "",
+)
